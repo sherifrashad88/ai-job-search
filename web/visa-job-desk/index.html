@@ -81,7 +81,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
 legend { font-family: var(--f-display); font-stretch: 90%; font-weight: 700; font-size: 16px; padding: 0; margin-bottom: 4px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-button.btn { font-family: var(--f-display); font-stretch: 95%; font-weight: 600; font-size: 14.5px; border-radius: 5px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+button.btn, a.btn, label.btn { display: inline-block; text-decoration: none; font-family: var(--f-display); font-stretch: 95%; font-weight: 600; font-size: 14.5px; border-radius: 5px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.drop { border: 2px dashed var(--accent); background: var(--accent-soft); }
+.drop.over { background: var(--sheet); }
+ol.steps.small li::before { width: 26px; height: 26px; font-size: 14px; }
+ol.steps.small li { grid-template-columns: 26px minmax(0, 1fr); }
+details summary { cursor: pointer; color: var(--accent); font-size: 13.5px; }
 button.btn.ghost { background: transparent; color: var(--accent); }
 button.btn.danger { background: transparent; color: var(--fail); border-color: var(--fail); }
 button.btn:disabled { opacity: 0.55; cursor: progress; }
@@ -169,11 +175,11 @@ ol.steps b { display: block; }
         <div class="sheet">
           <h3>Five steps</h3>
           <ol class="steps">
-            <li><div><b>Fill in your profile</b>Paste your resume text and answer the visa questions. Takes about 10 minutes, once.</div></li>
+            <li><div><b>Upload your CV</b>A PDF or Word file. Claude fills in your profile; you answer the visa questions. About 5 minutes, once.</div></li>
             <li><div><b>Find a job</b>On LinkedIn, Indeed or a company careers page. Copy the full posting text.</div></li>
             <li><div><b>Check it</b>Paste it under "Check a job". The visa stamp appears instantly: PASS, FLAG, UNVERIFIED or FAIL.</div></li>
             <li><div><b>Score and draft</b>Press "Score my fit", then draft the cover letter, resume bullets and recruiter note. Edit anything that isn't you.</div></li>
-            <li><div><b>Apply and track</b>Apply on the company site yourself, then save the job to the tracker. It tells you when to follow up.</div></li>
+            <li><div><b>Autofill, apply and track</b>Use the Autofill bookmark on the company's application form, check it, submit it yourself, then save the job to the tracker.</div></li>
           </ol>
           <div class="row"><button class="btn" id="goProfile">Start with my profile</button><button class="btn ghost" id="goCheck">Try the example job</button></div>
         </div>
@@ -203,6 +209,12 @@ ol.steps b { display: block; }
         <h2>My profile</h2>
       </div>
       <div class="example" id="profileExample" hidden>This is an <b>example profile</b> (Alex Morgan, fictional). Replace it with your own details and press <b>Save profile</b>.</div>
+      <div class="sheet drop" id="cvDrop">
+        <h3>Start from your CV</h3>
+        <p class="muted" style="margin:0">Upload a PDF or Word (.docx) file. The text is read here in your browser, then Claude fills in your details and saves your profile. You only need to check the work authorization answers.</p>
+        <div class="row"><label class="btn" for="cvFile">Upload CV</label><input type="file" id="cvFile" class="vh" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"><span class="muted" id="cvStatus">or drag the file onto this box</span></div>
+      </div>
+      <p class="notice" id="cvDone" hidden></p>
       <form id="profileForm" class="stack" novalidate>
         <div class="cols">
           <div class="sheet">
@@ -221,8 +233,27 @@ ol.steps b { display: block; }
               <label class="f">Deal-breakers<span class="hint">Anything that rules a job out</span><input id="p-deal"></label>
               <label class="f">How you like to work<span class="hint">Optional. Helps the culture-fit score.</span><input id="p-style"></label>
             </fieldset>
+            <fieldset>
+              <legend>For application forms</legend>
+              <div class="grid2">
+                <label class="f">Email<input id="p-email" type="email" autocomplete="email"></label>
+                <label class="f">Phone<input id="p-phone" type="tel" autocomplete="tel"></label>
+                <label class="f">LinkedIn URL<input id="p-linkedin" inputmode="url"></label>
+                <label class="f">Website or GitHub<input id="p-website" inputmode="url"></label>
+                <label class="f">City<input id="p-city"></label>
+                <label class="f">State / region<input id="p-state"></label>
+                <label class="f">ZIP / postcode<input id="p-zip"></label>
+                <label class="f">Country<input id="p-country"></label>
+                <label class="f">Current or last employer<input id="p-company"></label>
+                <label class="f">Current or last job title<input id="p-ctitle"></label>
+                <label class="f">School / university<input id="p-school"></label>
+                <label class="f">Degree<span class="hint">e.g. Bachelor's</span><input id="p-degree"></label>
+                <label class="f">Field of study<input id="p-discipline"></label>
+                <label class="f">Graduation year<input id="p-grad" inputmode="numeric"></label>
+              </div>
+            </fieldset>
           </div>
-          <div class="sheet">
+          <div class="sheet" id="authSheet">
             <fieldset>
               <legend>Work authorization</legend>
               <div class="grid2">
@@ -259,7 +290,7 @@ ol.steps b { display: block; }
           </div>
         </div>
         <div class="sheet">
-          <label class="f">Your resume (paste the text)<span class="hint">Open your CV, select all, copy, paste here. Everything the desk drafts comes from this text only.</span><textarea id="p-cv" class="tall"></textarea></label>
+          <label class="f">Your resume text<span class="hint">Filled in when you upload your CV, or paste it here. Everything the desk drafts comes from this text only.</span><textarea id="p-cv" class="tall"></textarea></label>
           <div class="row"><button class="btn" type="submit" id="saveProfile">Save profile</button><span class="muted" id="profileSaved"></span></div>
         </div>
       </form>
@@ -325,6 +356,19 @@ ol.steps b { display: block; }
         <div><p class="eyebrow" style="margin:0">Application form</p><h3>Screening answers, copied from your profile</h3></div>
         <div class="answers" id="answers"></div>
       </div>
+
+      <div class="sheet" id="autofillSheet">
+        <div><p class="eyebrow" style="margin:0">Autofill</p><h3>Fill the company's application form in one click</h3></div>
+        <ol class="steps small">
+          <li><div>Drag the teal button below onto your browser's bookmarks bar. To show the bar, press Ctrl+Shift+B (Cmd+Shift+B on a Mac).</div></li>
+          <li><div>Open the job's application form on the company's own site (Greenhouse, Lever, Ashby, Workday and most others).</div></li>
+          <li><div>Click the bookmark. It fills your contact details, education, work-authorization answers and the cover letter drafted above, and outlines each field it filled.</div></li>
+          <li><div>Check every answer, attach your resume file, and press Submit yourself.</div></li>
+        </ol>
+        <div class="row"><a class="btn" id="bmLink" href="#" draggable="true">Autofill</a><button class="btn ghost" id="bmCopy" type="button">Copy the code instead</button></div>
+        <p class="muted" style="margin:0" id="bmNote"></p>
+        <details><summary>Can't drag it?</summary><p class="muted">Press "Copy the code instead". In your browser, add a new bookmark, name it "Autofill", and paste the code into the URL (address) box. Re-copy it after you change your profile or draft a new cover letter.</p></details>
+      </div>
     </section>
 
     <!-- TRACKER -->
@@ -342,6 +386,8 @@ ol.steps b { display: block; }
 <div class="toast" id="toast" hidden></div>
 
 <script src="sponsor-check.js"></script>
+<script src="pdf.min.js"></script>
+<script src="mammoth.browser.min.js"></script>
 <script>
 (function () {
   "use strict";
@@ -353,6 +399,7 @@ ol.steps b { display: block; }
     name: "Alex Morgan", home: "Sydney, Australia", titles: "Data Analyst, Business Intelligence Analyst",
     cities: "New York, NY; Remote", mode: "hybrid", salary: "95000", years: "4", notice: "4 weeks after offer",
     deal: "No roles requiring US citizenship", style: "Small teams, clear goals, room to automate reporting",
+    email: "alex.morgan@example.com", phone: "+61 400 000 000", linkedin: "https://www.linkedin.com/in/example", website: "", city: "Sydney", state: "NSW", zip: "2000", country: "Australia", company: "Coastline Insurance", ctitle: "Data Analyst", school: "University of Sydney", degree: "Bachelor of Commerce", discipline: "Business Analytics", grad: "2019",
     cit: "au", visa: "e3", status: "Outside the US", expiry: "", auth: "no", needs: "now", strict: "prefer", min: "3",
     nospons: "flag", clear: "none", honest: "Yes",
     cv: "Alex Morgan - Data Analyst\nSydney, Australia\n\nEXPERIENCE\nData Analyst, Coastline Insurance (Sydney) 2022-present\n- Built a claims dashboard in Power BI used weekly by 40 managers\n- Automated monthly reporting with Python and SQL, cutting prep time from 3 days to 4 hours\n- Ran A/B analysis on renewal emails that lifted renewals 6%\n\nJunior Analyst, Brightpath Retail (Sydney) 2020-2022\n- Maintained SQL sales models across 120 stores\n- Cleaned and joined POS and inventory data for weekly forecasts\n\nEDUCATION\nBachelor of Commerce (Business Analytics), University of Sydney, 2019\n\nSKILLS\nSQL, Python (pandas), Power BI, Tableau, Excel, A/B testing, stakeholder reporting"
@@ -488,7 +535,8 @@ ol.steps b { display: block; }
   $("#goCheck").addEventListener("click", function () { showTab("check"); });
 
   /* ---------- profile ---------- */
-  var PF = ["name", "home", "titles", "cities", "mode", "salary", "years", "notice", "deal", "style", "cit", "visa", "status", "expiry", "auth", "needs", "strict", "min", "nospons", "clear", "honest", "cv"];
+  var PF = ["name", "home", "titles", "cities", "mode", "salary", "years", "notice", "deal", "style", "email", "phone", "linkedin", "website", "city", "state", "zip", "country", "company", "ctitle", "school", "degree", "discipline", "grad", "cit", "visa", "status", "expiry", "auth", "needs", "strict", "min", "nospons", "clear", "honest", "cv"];
+  var VISA_FIELDS = ["cit", "visa", "status", "expiry", "auth", "needs", "strict", "min", "nospons", "clear", "honest"];
   function fillProfile() {
     var p = state.profile || {};
     PF.forEach(function (k) { var n = $("#p-" + k); if (n) n.value = p[k] != null ? p[k] : ""; });
@@ -737,6 +785,7 @@ ol.steps b { display: block; }
       }
       if (res.truncated) meta += " · cut short, try again";
       $("#draftMeta").textContent = meta;
+      buildBookmarklet();
     }).catch(function (e) {
       if (e && e.code === "cancelled") { out.textContent = e.text || "Stopped."; return; }
       out.textContent = (e && e.text ? e.text + "\n\n" : "") + (e && e.code === "unavailable_here" ? "Drafting needs this page open in Claude (claude.ai or the Claude app)." : errCopy(e));
@@ -867,8 +916,145 @@ ol.steps b { display: block; }
     });
   });
 
+  /* ---------- CV upload: read the file here, then let Claude fill the profile ---------- */
+  if (window.pdfjsLib) { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js"; } catch (e) {} }
+  function readCvFile(file) {
+    var name = (file.name || "").toLowerCase();
+    if (/\.pdf$/.test(name) || file.type === "application/pdf") {
+      if (!window.pdfjsLib) return Promise.reject(new Error("The PDF reader didn't load. Reload the page and try again."));
+      return file.arrayBuffer().then(function (buf) {
+        return window.pdfjsLib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+      }).then(function (pdf) {
+        var pages = [];
+        for (var i = 1; i <= Math.min(pdf.numPages, 8); i++) pages.push(i);
+        return Promise.all(pages.map(function (n) {
+          return pdf.getPage(n).then(function (pg) { return pg.getTextContent(); }).then(function (tc) {
+            return tc.items.map(function (it) { return (it.str || "") + (it.hasEOL ? "\n" : " "); }).join("");
+          });
+        })).then(function (texts) { return texts.join("\n\n"); });
+      });
+    }
+    if (/\.docx$/.test(name)) {
+      if (!window.mammoth) return Promise.reject(new Error("The Word reader didn't load. Reload the page and try again."));
+      return file.arrayBuffer().then(function (buf) { return window.mammoth.extractRawText({ arrayBuffer: buf }); }).then(function (r) { return r.value; });
+    }
+    if (/\.doc$/.test(name)) return Promise.reject(new Error("Old .doc files can't be read. Save it as PDF or .docx and upload that."));
+    if (/\.(txt|md)$/.test(name) || /^text\//.test(file.type)) return file.text();
+    return Promise.reject(new Error("Upload a PDF, a Word .docx, or a text file."));
+  }
+  function cleanCvText(t) {
+    return String(t || "").replace(/[ \t]+\n/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim().slice(0, 30000);
+  }
+  var CIT = { "united states": "us", "usa": "us", "us": "us", "australia": "au", "australian": "au", "canada": "ca", "canadian": "ca", "mexico": "mx", "mexican": "mx", "chile": "cl", "chilean": "cl", "singapore": "sg", "singaporean": "sg" };
+  function handleCv(file) {
+    if (!file) return;
+    var status = $("#cvStatus"), done = $("#cvDone");
+    done.hidden = true;
+    status.textContent = "Reading " + file.name + "...";
+    readCvFile(file).then(function (raw) {
+      var text = cleanCvText(raw);
+      if (text.length < 80) throw new Error("Couldn't find text in that file. If it's a scanned image, export a text PDF from Word or Google Docs.");
+      if (state.profileIsExample) {
+        PF.forEach(function (k) { if (VISA_FIELDS.indexOf(k) < 0) { var n = $("#p-" + k); if (n && n.tagName !== "SELECT") n.value = ""; } });
+        $("#profileExample").hidden = true;
+      }
+      $("#p-cv").value = text;
+      status.textContent = "Read " + text.split(/\s+/).length + " words from " + file.name + ". Filling your details...";
+      return useCap("sample").then(function (sample) {
+        if (!sample) throw { code: "unavailable_here" };
+        var prompt = [
+          "Extract profile details from this resume for a job-application assistant. Use only what the resume states. Use null for anything not stated. Don't guess citizenship: fill it only if the resume explicitly states citizenship or nationality.",
+          "Reply with only JSON: {\"name\":s,\"email\":s,\"phone\":s,\"linkedin\":s,\"website\":s,\"city\":s,\"state\":s,\"zip\":s,\"country\":s,\"current_company\":s,\"current_title\":s,\"school\":s,\"degree\":s,\"discipline\":s,\"grad_year\":s,\"years_experience\":n,\"suggested_titles\":[s],\"citizenship\":s|null}",
+          "years_experience: total years of professional work, from the dates. suggested_titles: 2-4 job titles this person should search for, based on their actual experience. website: a portfolio or GitHub URL if present.",
+          "", "RESUME:", "<<<", text.slice(0, 20000), ">>>"
+        ].join("\n");
+        return sample.json(prompt, { modelTier: "default" });
+      }).then(function (x) {
+        if (!x || typeof x !== "object") throw { code: "invalid_json" };
+        var set = function (id, v) { if (v != null && String(v).trim() && String(v).toLowerCase() !== "null") { var n = $("#p-" + id); if (n && (!n.value || state.profileIsExample)) n.value = String(v).trim(); } };
+        set("name", x.name); set("email", x.email); set("phone", x.phone); set("linkedin", x.linkedin); set("website", x.website);
+        set("city", x.city); set("state", x.state); set("zip", x.zip); set("country", x.country);
+        set("company", x.current_company); set("ctitle", x.current_title); set("school", x.school); set("degree", x.degree);
+        set("discipline", x.discipline); set("grad", x.grad_year);
+        if (typeof x.years_experience === "number") set("years", Math.round(x.years_experience));
+        set("home", [x.city, x.state || x.country].filter(function (v) { return v && String(v).toLowerCase() !== "null"; }).join(", "));
+        if (Array.isArray(x.suggested_titles)) set("titles", x.suggested_titles.slice(0, 4).join(", "));
+        var cit = x.citizenship ? CIT[String(x.citizenship).toLowerCase().trim()] || "other" : null;
+        if (cit) { $("#p-cit").value = cit; $("#p-cit").dispatchEvent(new Event("change")); }
+        var p = readProfile();
+        state.profile = p; state.profileIsExample = false;
+        return Store.saveProfile(p).then(function (where) {
+          refreshAll();
+          status.textContent = "Done: " + file.name;
+          done.textContent = "Profile filled from your CV and saved " + (where === "cloud" ? "to your account" : "in this browser") + ". Now check the Work authorization answers" + (cit ? "" : " (your CV doesn't say your citizenship, so pick it there)") + ", fix anything that's off, and press Save profile.";
+          done.hidden = false;
+          $("#authSheet").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }, function (e) {
+        status.textContent = "Read " + file.name + ".";
+        done.textContent = (e && e.code === "unavailable_here" ? "Your CV text is in the resume box below. Automatic filling needs this page open in Claude, so fill the fields yourself and press Save profile." : "Your CV text is in the resume box below, but filling the fields didn't work: " + errCopy(e) + " Fill them yourself and press Save profile.");
+        done.hidden = false;
+      });
+    }).catch(function (e) {
+      status.textContent = e && e.message ? e.message : "Couldn't read that file.";
+    });
+  }
+  $("#cvFile").addEventListener("change", function () { handleCv(this.files && this.files[0]); this.value = ""; });
+  var drop = $("#cvDrop");
+  ["dragenter", "dragover"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function () { drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { e.preventDefault(); handleCv(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); });
+
+  /* ---------- Autofill bookmark ---------- */
+  var autofillSrc = null;
+  fetch("autofill.js").then(function (r) { return r.ok ? r.text() : null; }).then(function (t) { autofillSrc = t; buildBookmarklet(); }).catch(function () {});
+  function autofillData() {
+    var p = prof(), j = readJob();
+    var parts = String(p.name || "").trim().split(/\s+/);
+    var ROUTE = { none: "", e3: "E-3", h1b1: "H-1B1", tn: "TN", h1b: "H-1B", o1: "O-1", l1: "L-1" };
+    return {
+      first: parts[0] || "", last: parts.length > 1 ? parts[parts.length - 1] : "", full: p.name || "",
+      email: p.email || "", phone: p.phone || "", linkedin: p.linkedin || "",
+      github: /github\.com/i.test(p.website || "") ? p.website : "", website: p.website || "",
+      location: [p.city, p.state].filter(Boolean).join(", ") || p.home || "", state: p.state || "", zip: p.zip || "", country: p.country || "",
+      company: p.company || "", title: p.ctitle || "", school: p.school || "", degree: p.degree || "", discipline: p.discipline || "", gradYear: p.grad || "",
+      years: p.years || "", salary: p.salary ? String(p.salary) : "", notice: p.notice || "",
+      auth: p.auth === "yes" ? "Yes" : "No", honest: p.honest || "Yes", route: ROUTE[p.visa] || "",
+      clearance: p.clear && !/^none$/i.test(p.clear) ? "Yes" : "No",
+      cover: state.draft.kind === "cover" && state.draft.text ? state.draft.text : "",
+      company_applying: j.company || ""
+    };
+  }
+  function bookmarkletCode() {
+    if (!autofillSrc) return "";
+    var body = autofillSrc.split("\n").map(function (l) { return l.trim(); }).join("\n");
+    return "javascript:" + encodeURIComponent("(" + body + ")(" + JSON.stringify(autofillData()) + ");void 0");
+  }
+  function buildBookmarklet() {
+    var a = $("#bmLink"), note = $("#bmNote");
+    if (!a) return;
+    var code = bookmarkletCode();
+    var d = autofillData();
+    if (!code) { a.removeAttribute("href"); note.textContent = "Loading the autofill tool..."; return; }
+    a.setAttribute("href", code);
+    a.textContent = "Autofill" + (d.company_applying ? ": " + d.company_applying.slice(0, 24) : "");
+    note.textContent = (state.profileIsExample ? "Uses the example profile until you save yours. " : "") +
+      (d.cover ? "Includes the cover letter drafted above. " : "Draft a cover letter above first if the form asks for one, then drag a fresh copy. ") +
+      "Works in desktop Chrome, Edge, Firefox and Safari. It never submits, and it's switched off on LinkedIn and Indeed.";
+  }
+  $("#bmLink").addEventListener("click", function (e) { e.preventDefault(); toast("Drag this button onto your bookmarks bar, then click it on the application form."); });
+  $("#bmCopy").addEventListener("click", function () {
+    var code = bookmarkletCode();
+    if (!code) { toast("Still loading. Try again in a second."); return; }
+    var holder = el("span", { text: code });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () { toast("Copied. Paste it as a new bookmark's URL."); }, function () { toast("Copy didn't work here. Use drag instead."); });
+    } else toast("Copy isn't available here. Use drag instead.");
+  });
+  $("#j-company").addEventListener("input", buildBookmarklet);
+
   /* ---------- boot ---------- */
-  function refreshAll() { runCheck(); renderFit(); renderAnswers(); }
+  function refreshAll() { runCheck(); renderFit(); renderAnswers(); buildBookmarklet(); }
   var savedProfile = lsGet("vjd.profile");
   state.profile = savedProfile || EXAMPLE_PROFILE;
   state.profileIsExample = !savedProfile;
