@@ -186,7 +186,8 @@ ai-job-search/
 │   ├── jobindex-search/               # Jobindex.dk (Denmark)
 │   ├── jobnet-search/                 # Jobnet.dk (Denmark, government portal)
 │   ├── linkedin-search/               # LinkedIn public job listings (country-agnostic)
-│   └── freehire-search/               # freehire.me tech job aggregator (multi-market, REST API)
+│   ├── freehire-search/               # freehire.me tech job aggregator (multi-market, REST API)
+│   └── jsearch-search/                # JSearch API: Google for Jobs (US-first; needs an API key)
 ├── cv/
 │   └── main_example.tex               # moderncv LaTeX template
 ├── cover_letters/
@@ -308,6 +309,7 @@ For **country-agnostic** starting points outside Denmark, the repo ships two por
 
 - **`linkedin-search`** — built on LinkedIn's public, unauthenticated `jobs-guest` endpoints. Field-agnostic, **zero runtime dependencies** (runs with just `bun`), and takes the search location as an explicit flag, so it works for any market out of the box (`-l "Berlin, Germany"`, `-l "Mumbai, Maharashtra, India"`, `-l "Remote"`, …). Intended for **personal use only** — automated access is against LinkedIn's Terms of Service, so keep volume low. See `.agents/skills/linkedin-search/SKILL.md`.
 - **`freehire-search`** — queries the [freehire.me](https://freehire.me) aggregator's public REST API (JSON, no API key). Tech-focused (software, data, engineering, DevOps, remote), multi-market via facet flags (`--region`, `--country`, `--remote`), and **zero runtime dependencies**. Unlike the HTML-scraping Danish portals, results come back structured (skills, seniority, category). The backend is MIT-licensed and [self-hostable](https://github.com/strelov1/freehire) — point `FREEHIRE_API_URL` at your own instance if you prefer. See `.agents/skills/freehire-search/SKILL.md`.
+- **`jsearch-search`** — the US-first portal. It queries the [JSearch API](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) (OpenWeb Ninja, via RapidAPI or direct), which returns Google for Jobs results: postings from LinkedIn, Indeed, Glassdoor, ZipRecruiter and company career sites in one structured feed. It needs an API key in `JSEARCH_API_TOKEN`, and every call spends quota, so `/scrape` uses one page per query. Apply links open the publisher's page, where you apply by hand. See `.agents/skills/jsearch-search/SKILL.md`.
 
 ### Extending the framework: portals, templates, criteria - and borrowing from other forks
 
@@ -330,6 +332,16 @@ Market-specific *data sources* (a national salary database, local award-rate tab
 ### Salary benchmarking
 
 The salary tool works with any salary data you provide (union statistics, Glassdoor exports, personal research, etc.). See `tools/README_SALARY_TOOL.md` for the expected format and setup. If you don't have salary data, the salary step is simply skipped.
+
+### US job search and visa sponsorship
+
+For candidates who need a US work visa, `/setup` asks about work authorization in Section 7b: citizenship, current status, visa path (E-3 for Australians, H-1B1 for Chile and Singapore, TN, H-1B), how strict to be about sponsor history, and whether to drop or flag "no sponsorship" postings. Those answers drive three things:
+
+- **Sponsorship Gate** (`04-job-evaluation.md`). Every posting's cleaned text goes through `tools/sponsor_lookup.py check-posting` before scoring. Citizens-only, clearance-required and "no sponsorship" lines are caught in code, and `/rank` vetoes a FAIL the same way it vetoes a location or language FAIL. A "we don't sponsor H-1B" line is flagged rather than dropped for an E-3 or H-1B1 candidate, since those are different filings.
+- **Sponsor Strength** (dimension 7, 20% of the score). Each employer's record of filing for your visa class comes from public Department of Labor LCA disclosure files and the USCIS H-1B Employer Data Hub, downloaded once and imported locally. See `tools/README_SPONSOR_TOOL.md`. `sponsor_lookup.py top` also lists the most active sponsors by state and role for `/scrape`'s sponsor watchlist.
+- **Honest form answers** (`08-application-forms.md`). "Will you now or in the future require sponsorship?" is answered exactly as your profile records it, every time.
+
+None of this is legal advice. Confirm your visa route with an immigration attorney.
 
 ### Starting over
 

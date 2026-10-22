@@ -15,6 +15,23 @@ per-file diff commands.
 
 ### Added
 
+- **US market: visa-sponsorship gate, sponsor data and a JSearch portal** - for candidates who need
+  a US work visa. `/setup` Section 7b asks work authorization (visa path: E-3, H-1B1, TN, H-1B; strictness;
+  drop or flag "no sponsorship" postings) into a new CLAUDE.md `Work Authorization & Sponsorship` block.
+  `tools/sponsor_lookup.py` imports DOL LCA disclosure files and USCIS H-1B Employer Data Hub exports into a
+  local `sponsor_data.json` (gitignored), then answers `lookup` (an employer's filings for a visa class, as a
+  Strong / Some history / None found verdict and a 0-100 score), `top` (most active sponsors by state and
+  title) and `check-posting` (citizens-only, clearance, no-sponsorship and sponsorship-offered phrases in the
+  cleaned posting text, with the candidate's drop/flag setting applied). `04-job-evaluation.md` gains the
+  Sponsorship Gate and a Sponsor Strength dimension (20% when scored). `/rank` runs lookups in code before any
+  agent and vetoes `eligibility_gate: FAIL`. Before this, `/rank` applied no eligibility check at all, so a
+  citizens-only posting could top a shortlist. `tools/rank_state.py` persists `eligibility_gate`,
+  `eligibility_note`, `sponsor_verdict`, `sponsor_score` and `sponsor_note`. `/apply` shows both checks and
+  offers the work-authorization form answers. The CV, cover letter and forms guides gain US conventions,
+  a work-authorization sentence and copy-exact screening answers. New `jsearch-search` portal: JSearch API
+  (Google for Jobs) with the key from `JSEARCH_API_TOKEN`, network-free bun tests. Tests:
+  `tests/test_sponsor_lookup.py`, plus new `SponsorshipGate` cases in `tests/test_rank_state.py`.
+
 - **CI runs the Python suite on Windows** (`.github/workflows/ci.yml` `python-tests-windows`) - every
   job ran on Ubuntu, so a Windows-only failure reached master with all checks green: #480's test
   (an atomic rename that Windows file locking refuses) and #486's (a tool printing non-ASCII JSON
