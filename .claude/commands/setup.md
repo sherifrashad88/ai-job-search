@@ -413,6 +413,7 @@ Replace all placeholder tokens in the search queries file with the user's actual
   - Priority 2: Their domain expertise
   - Priority 3: Adjacent roles they could pivot into
   - Priority 4: Broader roles (wider net)
+  - Priority 5: Sponsor watchlist, only when Section 7b found the candidate needs sponsorship with an `e3`, `h1b` or `h1b1` class. With `sponsor_data.json` loaded, run the `top` command shown in that category (primary title, home state; drop `--state` for remote-friendly searches) and fill `[SPONSOR_COMPANY_n]` with the top 10-15 names. Without the data, fill only the `[VISA_KEYWORD]` line and leave a note to refresh the list once the data is imported.
 
 ---
 

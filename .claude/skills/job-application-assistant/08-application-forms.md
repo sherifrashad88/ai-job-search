@@ -1,5 +1,5 @@
 ---
-framework_version: 1.0.0
+framework_version: 1.1.0
 ---
 
 # Application Form Fields
@@ -65,6 +65,24 @@ These reward **a specific situation over an adjective**. Most applicants submit 
 4. Present all candidates with counts, recommend one, and say why.
 
 Prefer the version that **maps the candidate's problem onto the employer's problem**, where a truthful mapping exists. That is what "stand out" is actually asking for.
+
+## Field type: work authorization and screening questions
+
+Almost every US application form asks these as dropdowns or yes/no fields. They are not free text, but a wrong answer is worse than any weak paragraph, so draft them in the same file.
+
+| Question (typical wording) | Answer from | Rule |
+|---|---|---|
+| "Are you legally authorized to work in the United States?" | CLAUDE.md `Current status in the target market` | Yes only if authorized **now**, for this employer. A candidate who will be authorized on E-3 once an employer files answers **No** here and **Yes** to the sponsorship question. Add a `NOTE TO SELF` when the form offers a free-text "explain" field. |
+| "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B)?" | `Answer to "Will you now or in the future require sponsorship?"` | **Copied exactly, every time.** Never shaded to pass a knockout filter. E-3 and H-1B1 count as sponsorship, because the employer files a Labor Condition Application. TN is a judgment call: use the answer the candidate recorded in `/setup`, ideally after checking with an immigration attorney. |
+| "What type of visa / status do you hold or need?" | `Visa path(s)` | Name the primary path ("E-3 (Australian citizen)"). |
+| "Do you hold an active security clearance?" | `Security clearance held` | As recorded. |
+| Desired salary | CLAUDE.md salary baseline | Give a range anchored on the posting's published range when it has one. Flag any conflict with the profile minimum in a `NOTE TO SELF`. |
+| Earliest start date / notice period | Ask the candidate if the profile lacks it | Never guess. For E-3, a `NOTE TO SELF` adds the visa lead time on top of the notice period. |
+| Voluntary self-identification (gender, race/ethnicity, veteran, disability) | The candidate | Voluntary and never used in hiring. Default to "I don't wish to answer" unless the candidate gave a preference. |
+
+## Field type: short cover note (150-200 words)
+
+Some portals and recruiter emails want a short note instead of, or alongside, the one-page letter. Distil it from the cover letter already drafted for this role: one sentence of motivation tied to this employer, the two strongest bullets as one sentence each, the work-authorization sentence when it applies, and a one-line close. Count the words and state the count. A LinkedIn connection note to a recruiter is the same idea under **300 characters**, counted programmatically.
 
 ## Output format
 

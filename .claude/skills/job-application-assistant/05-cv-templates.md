@@ -1,5 +1,5 @@
 ---
-framework_version: 1.4.8
+framework_version: 1.5.0
 ---
 
 # CV Templates and Tailoring Guide
@@ -217,6 +217,14 @@ Wherever the CV names a verifiable artifact - a public project, a hackathon entr
 - List 2-4 references with name, title, company, and contact
 - End with: "More references are available upon request."
 - **Do not attach reference letters** - employers typically contact references directly
+- **US market exception** (CLAUDE.md `Target job market: United States`): drop the References section and the "available upon request" line entirely. US employers ask for references late in the process, and the line reads as dated filler. Use the freed space for experience.
+
+### US Market Conventions
+Apply these when CLAUDE.md's `Target job market` is the United States:
+- **No photo, date of birth, marital status, nationality line or full home address** on the resume (city and state are enough). US employers avoid this information for anti-discrimination reasons, and ATS imports may flag it.
+- **US spelling and terms** ("resume", "organization", "GPA" only if 3.5+ and within about three years of graduation).
+- **Length:** the stock template is fixed at 2 pages, which suits about ten or more years of experience. A candidate who chose a one-page resume in `/setup` registers one with `/add-template` and `Page limit: 1`, and the ACTIVE-TEMPLATE block then governs.
+- **Work authorization is not a resume field.** Leave visa status off the resume. It belongs in the cover letter (see `06-cover-letter-templates.md`, "Work authorization line") and in the application form's own questions.
 
 ### LaTeX Special Characters (important)
 

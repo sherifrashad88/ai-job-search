@@ -137,6 +137,8 @@ For each new job, do a rapid fit check (NOT the full evaluation from `04-job-eva
 - **Medium match**: Role is adjacent to your experience
 - **Low match**: Role requires significant skills you lack
 
+**Eligibility override:** when CLAUDE.md's Work Authorization block applies, a result whose visible text says US citizens or permanent residents only, or requires a security clearance the candidate lacks, is marked **Low** and the reason named in its highlights. A "no sponsorship" line is named in the highlights but not downgraded here: the candidate's drop/flag setting is applied by `/rank`'s Sponsorship Gate, which reads the full posting.
+
 **Language override:** before assigning a match level, check the posting against `04-job-evaluation.md`'s Language Gate (a required language you haven't declared at all in your CLAUDE.md Languages table). A required language that's entirely undeclared overrides skill fit: mark it **Low** regardless of how well the skills align, and name it in the highlight bullets so it isn't buried under an otherwise-good-looking match. A **declared** language at a requirement that reads higher than your declared level is *not* an override — score fit normally, but add a red-flag bullet under that job's highlights (Step 5) quoting the posting's requirement next to your declared level, so the gap is visible without being auto-downgraded.
 
 ### Step 4: Deduplicate & Store

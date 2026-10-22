@@ -52,6 +52,22 @@ python3 salary_lookup.py "<Company Name>" --json
 
 If the posting specifies a city, add `--city "<City>"` to narrow results. Parse the JSON output and include the salary benchmark in the evaluation. If the tool is not configured or returns an error, skip the salary benchmark.
 
+### Sponsorship Gate and Sponsor Strength (candidates who need a work visa)
+
+Read CLAUDE.md's `### Work Authorization & Sponsorship` block. When it says sponsorship is needed now or in the future, run `04-job-evaluation.md`'s Sponsorship Gate on the **cleaned** posting text from Step 0. Write that text unchanged to `${SCRATCHPAD:?}/posting_clean.txt` first:
+
+```bash
+python3 tools/sponsor_lookup.py check-posting --in "${SCRATCHPAD:?}/posting_clean.txt" --visa <Sponsor-data class> --needs-sponsorship yes --no-sponsorship <drop|flag> --json
+```
+
+Then, when dimension 7's conditions hold, run the employer lookup. Use the employer's **legal name** where the posting or its careers page gives one, since filings are under legal names:
+
+```bash
+python3 tools/sponsor_lookup.py lookup "<Company Name>" --visa <Sponsor-data class> --title "<role title>" --min <N> --years <YEARS> --json
+```
+
+A gate `FAIL` stops here: quote the finding and do not draft unless the user says their situation differs from the profile. A gate `FLAG` or `UNVERIFIED` continues with the quoted line shown, plus a concrete next step ("ask the recruiter whether they file E-3 LCAs", or "check the careers page's immigration FAQ"). When the candidate needs no sponsorship, still apply the Eligibility Gate's citizens-only and clearance rows by reading the posting.
+
 ### Source Host Verification (when input is a URL)
 
 Before proceeding to drafting, inspect the posting URL's hostname to verify provenance (#431). Classify the host into one of three categories:
@@ -74,6 +90,7 @@ Present the evaluation to the user with:
 2. **Skills match** - which required/preferred skills match vs. gaps
 3. **Experience match** - how work history maps to the role
 4. **Behavioral/culture match** - how behavioral profile fits the role/company culture
+4b. **Sponsorship** - the gate verdict with its quoted line, and Sponsor Strength (verdict, filings in the fiscal-year window, filed titles, notes) when scored. Shown only when the candidate needs sponsorship, or when a citizens-only or clearance line was found.
 5. **Salary benchmark** - salary index for the company (if available)
 6. **Overall fit score** and recommendation (strong fit / moderate fit / weak fit)
 
@@ -411,7 +428,7 @@ Name the tracker row in the "Files Created" report above, and the archived posti
 
 ### Application-Form Fields (Optional Third Artifact)
 
-Check whether the posting or the portal it came from asks for free-text fields the CV and cover letter don't cover — a self-introduction paragraph, structured project entries, a character-limited pitch, or a motivation/competency question under a word cap (see `.claude/skills/job-application-assistant/08-application-forms.md`, "When this applies"). If it does, or the user has already mentioned the portal, offer it in the same turn:
+Check whether the posting or the portal it came from asks for free-text fields the CV and cover letter don't cover — a self-introduction paragraph, structured project entries, a character-limited pitch, or a motivation/competency question under a word cap (see `.claude/skills/job-application-assistant/08-application-forms.md`, "When this applies"). If it does, or the user has already mentioned the portal, offer it in the same turn. **For a candidate whose profile says they need sponsorship, always offer the work-authorization answers** (`08-application-forms.md`, "work authorization and screening questions"), since nearly every US form asks them:
 
 > "This posting has free-text application fields I can draft too — [name the specific fields, e.g. a self-introduction paragraph and structured project entries]. Want those drafted?"
 

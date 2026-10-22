@@ -1,5 +1,5 @@
 ---
-framework_version: 1.0.2
+framework_version: 1.1.0
 ---
 
 # Cover Letter Templates and Tailoring Guide
@@ -154,6 +154,15 @@ Escape these wherever they appear in body text:
 - Percent: `\%` ("grew revenue 30\%") - unescaped, it does **not** fail: everything after the `%` on that line is silently eaten as a LaTeX comment
 - Dollar: `\$`, hash: `\#`, underscore: `\_`
 - Tilde: `\textasciitilde{}`, caret: `\textasciicircum{}`, backslash: `\textbackslash{}`
+
+### Work authorization line (candidates who need a US visa)
+When CLAUDE.md's `### Work Authorization & Sponsorship` block says sponsorship is needed, add **one sentence** to the closing paragraph. Recruiters screening international applicants decide on this question first, and a candidate who explains the route plainly gets past a reflexive "we don't sponsor".
+- **E-3 (Australian citizen):** "As an Australian citizen I am eligible for the E-3 visa: it needs a Labor Condition Application rather than an H-1B petition, involves no lottery, and can be in place within weeks of an offer." Adjust the timing claim to what the candidate knows. Never promise a date.
+- **H-1B1 (Chile / Singapore):** the same shape, naming H-1B1.
+- **TN (Canada / Mexico):** "As a [Canadian] citizen I can work in this role under TN status, which requires no employer petition or lottery." Only when the role is a listed TN profession.
+- **H-1B or other routes:** state the need plainly and briefly ("I will require H-1B sponsorship"). Never downplay it, and never imply a route the candidate does not qualify for.
+- **Sponsorship not needed:** say nothing. When the posting raises the question, one clause ("authorized to work in the US without sponsorship") is enough.
+Keep it consistent with the profile block's honest answer, which the application form will also carry.
 
 ### Non-English Cover Letters
 - Same template structure, just write content in the posting's language

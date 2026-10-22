@@ -67,6 +67,28 @@ site:linkedin.com/jobs "[YOUR_KEY_SKILL] developer" [YOUR_CITY]
 site:[YOUR_JOB_BOARD] "technical consultant" [YOUR_DOMAIN] [YOUR_CITY]
 ```
 
+### Priority 5: Sponsor watchlist (only for candidates who need visa sponsorship)
+
+<!-- /setup fills this when CLAUDE.md's Work Authorization block needs sponsorship and the
+Sponsor-data class is e3, h1b or h1b1. Leave the placeholders in place otherwise; /scrape skips
+a category whose companies are still placeholders. -->
+
+Employers with a public record of filing for your visa class, from
+`python3 tools/sponsor_lookup.py top --visa [SPONSOR_DATA_CLASS] --title "[YOUR_PRIMARY_JOB_TITLE_1]" --state [YOUR_STATE] --limit 30`.
+Refresh this list each quarter, after re-importing the sponsor data. Search each company by name with your primary
+titles on the installed portal CLIs (`jsearch-search`, `linkedin-search`). The `site:` lines are the fallback:
+
+```
+"[SPONSOR_COMPANY_1]" "[YOUR_PRIMARY_JOB_TITLE_1]"
+"[SPONSOR_COMPANY_2]" "[YOUR_PRIMARY_JOB_TITLE_1]"
+"[YOUR_PRIMARY_JOB_TITLE_1]" "[VISA_KEYWORD]" [YOUR_CITY]
+```
+
+`[VISA_KEYWORD]` is the visa name as postings write it: `"E-3 visa"` or `"E3 visa"` for Australians, `"H-1B1"`
+for Chile/Singapore, `"visa sponsorship"` for H-1B. A posting that names your visa is a strong positive signal.
+Postings that refuse sponsorship are still scraped: the Sponsorship Gate in `04-job-evaluation.md` decides
+them at `/rank` time, with your drop/flag setting.
+
 ## Location Filter
 
 When evaluating results, verify the job location is within reasonable commute distance from your home. Define acceptable areas:
