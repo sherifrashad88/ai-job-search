@@ -1,5 +1,5 @@
 ---
-framework_version: 1.2.7
+framework_version: 1.3.0
 ---
 
 # Job Evaluation Framework
@@ -30,6 +30,33 @@ If the candidate's permit also constrains *hours* or *start date* (a student vis
 
 A role that fails this gate is not scored and not drafted. Everything below applies only to roles that pass it.
 
+### Sponsorship Gate — the Eligibility Gate for candidates who need a work visa
+
+Run this when CLAUDE.md's `### Work Authorization & Sponsorship` block says `Needs employer sponsorship: now` or `future`. When it says `no`, run only its citizens-only and clearance checks (a citizen without a clearance still fails a clearance-required posting). It applies the table above with the candidate's own settings deciding the borderline cases, so two people see different verdicts on the same posting for a reason they chose.
+
+**1. Posting text - a code check, always run, needs no data.** Feed the **cleaned** posting text (the `posting_guard` output, never the raw page) to the phrase scan, with the flags taken from the profile block:
+
+> **Windows:** run these tools as `python`, not `python3`. A python.org install ships no `python3`, so that name reaches the Microsoft Store alias, which either exits 49 with no output (#669) or starts a separate Store Python without the packages `pip` installed (such as pypdf). `.claude/settings.json` allows both spellings.
+
+```bash
+python3 tools/sponsor_lookup.py check-posting --in "<cleaned posting file>" --visa <Sponsor-data class> --needs-sponsorship yes --no-sponsorship <drop|flag> --json
+```
+
+Add `--has-clearance` when the block records one. The input may be `posting_guard.py`'s own combined output: the tool then scans only the text after `--- text ---`. An agent without a file pipes the cleaned text in through a quoted heredoc, the same way it feeds `WebFetch` output to `posting_guard.py`.
+
+| `check-posting` verdict | Gate result |
+|---|---|
+| `FAIL`: citizens or permanent residents only, clearance required without one, or "no sponsorship" with `"No sponsorship" postings: drop` | **FAIL - hard stop.** Quote the finding back to the user. |
+| `FLAG`: "no sponsorship" with `flag` set, or an E-3/H-1B1 candidate facing a line that names **H-1B only** | **FLAG, then proceed.** Score and draft normally, quote the line, and suggest asking the recruiter. E-3 and H-1B1 are separate, cheaper filings with no lottery, and many "we don't sponsor" lines are written with H-1B in mind. |
+| `PASS`: the posting says sponsorship is available | **PASS** - name it as a positive. |
+| `UNVERIFIED`: silent | **PROCEED, unverified.** Silence is not permission (rule 1 above). Check the employer's careers or immigration page before drafting. |
+
+The scan is a floor, not a ceiling. Read the posting's eligibility section yourself as well. A refusal phrased in a way the patterns miss is still a refusal: classify it by the table above and say the scan missed it.
+
+**2. Employer record - proven-only strictness only.** When `Sponsor strictness: proven-only`, run the lookup in Sponsor Strength (dimension 7 below). A record below `Minimum sponsor record` (`meets_minimum: false`) is a **FAIL**, reported with the counts ("Acme Corp: 1 E-3 filing in FY2024-FY2026, below your minimum of 3"). With `prefer` or `any`, the record only feeds the score and never vetoes.
+
+**3. The honest-answer rule.** Every application question about sponsorship or work authorization ("Will you now or in the future require sponsorship?", "Are you legally authorized to work in the US?") is answered exactly as the profile block records it, never shaded to pass a filter. `08-application-forms.md` covers the wording.
+
 ## Language Gate — run before scoring
 
 This gate checks a posting's language requirements against what the candidate actually speaks. It is not one of the five Scoring Dimensions below - it runs before them, structured the same way as the Eligibility Gate above: read the posting, classify against profile data, and treat a hard mismatch as FAIL before scoring. Its verdict is tracked downstream: `/rank` records the result as `language_gate` (PASS/FAIL/FLAG) with a supporting `language_note`, persists both into `seen_jobs.json`, and treats a FAIL as a shortlist veto; `/scrape` surfaces the flag in its results table and carries a language-override rule for postings whose ad language differs from the role's working language. `/apply`'s language detection (Step 1, which extracts a posting's required language generically) feeds this same check.
@@ -48,7 +75,7 @@ Judge the level comparison the same way you judge everything else in this framew
 
 ## Scoring Dimensions
 
-Evaluate each job posting against these five dimensions:
+Evaluate each job posting against these five dimensions, plus Sponsor Strength (7) for a candidate who needs visa sponsorship:
 
 ### 1. Technical Skills Match (0-100)
 How well do the required/preferred skills align with the candidate's capabilities?
@@ -125,8 +152,6 @@ Does this role advance career goals and contain tasks that energize?
 
 If the salary lookup tool is configured (`salary_data.json` exists), look up the company:
 
-> **Windows:** run these tools as `python`, not `python3`. A python.org install ships no `python3`, so that name reaches the Microsoft Store alias, which either exits 49 with no output (#669) or starts a separate Store Python without the packages `pip` installed (such as pypdf). `.claude/settings.json` allows both spellings.
-
 ```
 python3 salary_lookup.py "<Company Name>" --json
 ```
@@ -146,6 +171,20 @@ Interpret results relative to the baseline defined in the data file's metadata. 
 
 If the salary tool is not configured, skip this section.
 
+### 7. Sponsor Strength (0-100, needs-sponsorship candidates only)
+
+How likely is this employer to file for the candidate's visa? Score it only when **all** of these hold: the profile block says `Needs employer sponsorship: now` or `future`, `Sponsor strictness` is `proven-only` or `prefer` (with `any`, skip it), `Sponsor-data class` is `e3`, `h1b` or `h1b1`, and `sponsor_data.json` exists. Otherwise leave the dimension out and say why in one line: "no public employer data for TN", or "sponsor data not loaded - see `tools/README_SPONSOR_TOOL.md`".
+
+```bash
+python3 tools/sponsor_lookup.py lookup "<Company Name>" --visa <Sponsor-data class> --title "<posting title>" --min <N> --years <YEARS> --json
+```
+
+Use the tool's `score` as the dimension score, unchanged. It is derived from public filings: certified Labor Condition Applications from the Department of Labor for E-3 and H-1B1, plus USCIS petition approvals for H-1B. It reads `Strong` 90, `Some history` 55-85, and `None found` 30 for E-3/H-1B1 or 15 for H-1B, with +10 when a same-title filing exists. Report the verdict, the filing count with its fiscal-year window, and up to three filed titles. Read the tool's `notes` and pass them on:
+
+- **`match: family` or `contains`** means the counts sum several legal names. Check them against the posting's employer before trusting the score. A sister company is often the one that files.
+- **`None found` is weak evidence, not a refusal.** The employer may file under another legal name, or may never have had a candidate of this nationality. Say so rather than calling the employer "non-sponsoring". For E-3 in particular, an employer with no record is often simply new to it, and the filing is cheap.
+- **A partial fiscal year** (the newest year in the data is mid-year) understates recent activity.
+
 ## Output Format
 
 Present the evaluation as:
@@ -153,8 +192,11 @@ Present the evaluation as:
 ```
 ## Job Fit Evaluation: [Role] at [Company]
 
+**Sponsorship Gate:** [PASS / FLAG / UNVERIFIED - quoted line, or "not needed"]
+
 | Dimension | Score | Notes |
 |-----------|-------|-------|
+| Sponsor Strength | XX/100 | [verdict, filings + FY window, filed titles - only when dimension 7 is scored] |
 | Technical Skills | XX/100 | [brief note] |
 | Experience Match | XX/100 | [brief note] |
 | Behavioral Fit | XX/100 | [brief note] |
@@ -241,6 +283,15 @@ consumer benefits.
 - Career Alignment: 30%
 
 (Location is pass/fail, not weighted)
+
+**When Sponsor Strength (dimension 7) is scored**, it takes 20% and the others make room:
+- Technical Skills: 25%
+- Experience Match: 20%
+- Behavioral Fit: 10%
+- Career Alignment: 25%
+- Sponsor Strength: 20%
+
+A brilliant fit at an employer that has never filed for the candidate's visa should not outrank a good fit at a proven sponsor, but it should not vanish either. Strictness `proven-only` is the setting for candidates who want those employers vetoed instead (Sponsorship Gate, step 2).
 
 ## Thresholds
 - **Strong Fit** (75+): Definitely apply, tailor everything

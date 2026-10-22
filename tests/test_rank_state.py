@@ -860,5 +860,82 @@ class Unreachable(RankStateCase):
         self.assertEqual(self.read_state()["a"]["status"], "new")
 
 
+class SponsorshipGate(RankStateCase):
+    """Sponsorship Gate and Sponsor Strength (04-job-evaluation.md): a FAIL
+    vetoes like a location or language FAIL, and a numeric `sponsor` score
+    switches the result to the sponsorship weighting."""
+
+    results = Apply.results
+
+    SCORES = {"technical": 80, "experience": 60, "behavioral": 70, "career": 75}
+
+    def test_sponsor_score_switches_to_sponsorship_weights_and_is_persisted(self):
+        self.write_state({"a": entry()})
+        out = self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": {**self.SCORES, "sponsor": 90},
+             "eligibility_gate": "UNVERIFIED", "eligibility_note": "posting silent on sponsorship",
+             "sponsor_verdict": "Strong", "sponsor_note": "6 E-3 filings FY2024-FY2026"},
+        ]))
+        stored = self.read_state()["a"]
+        # 80*.25 + 60*.20 + 70*.10 + 75*.25 + 90*.20 = 75.75 -> 76
+        self.assertEqual(stored["rank_score"], 76)
+        self.assertEqual(stored["sponsor_verdict"], "Strong")
+        self.assertEqual(stored["sponsor_score"], 90)
+        self.assertEqual(stored["eligibility_gate"], "UNVERIFIED")
+        self.assertEqual(stored["eligibility_note"], "posting silent on sponsorship")
+        self.assertEqual([r["key"] for r in out["ranked"]], ["a"], "UNVERIFIED stays in the ranking")
+        self.assertEqual(out["ranked"][0]["sponsor_note"], "6 E-3 filings FY2024-FY2026")
+
+    def test_null_sponsor_keeps_the_default_weights(self):
+        self.write_state({"a": entry()})
+        self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": {**self.SCORES, "sponsor": None}},
+        ]))
+        stored = self.read_state()["a"]
+        self.assertEqual(stored["rank_score"], 72)
+        self.assertEqual(stored["eligibility_gate"], "PASS")
+        self.assertNotIn("sponsor_verdict", stored)
+
+    def test_eligibility_fail_is_vetoed(self):
+        self.write_state({"a": entry(), "b": entry()})
+        high = {"technical": 95, "experience": 95, "behavioral": 95, "career": 95}
+        out = self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": high, "eligibility_gate": "FAIL",
+             "eligibility_note": "\"We are unable to provide visa sponsorship\""},
+            {"key": "b", "status": "scored", "scores": self.SCORES, "eligibility_gate": "FLAG",
+             "eligibility_note": "no-sponsorship line names H-1B only"},
+        ]))
+        self.assertEqual([r["key"] for r in out["vetoed"]], ["a"])
+        self.assertEqual([r["key"] for r in out["ranked"]], ["b"])
+        self.assertIn("visa sponsorship", self.read_state()["a"]["eligibility_note"])
+
+    def test_unknown_gate_or_sponsor_verdict_is_an_error(self):
+        self.write_state({"a": entry(), "b": entry()})
+        out = self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": self.SCORES, "eligibility_gate": "MAYBE"},
+            {"key": "b", "status": "scored", "scores": self.SCORES, "sponsor_verdict": "Great"},
+        ]), expect=1)
+        self.assertEqual(sorted(e["key"] for e in out["errors"]), ["a", "b"])
+        self.assertEqual(self.read_state()["a"]["status"], "new")
+
+    def test_non_numeric_sponsor_score_is_an_error(self):
+        self.write_state({"a": entry()})
+        out = self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": {**self.SCORES, "sponsor": "high"}},
+        ]), expect=1)
+        self.assertIn("sponsor", out["errors"][0]["error"])
+
+    def test_rescore_without_sponsor_drops_stale_sponsor_fields(self):
+        self.write_state({"a": entry(status="ranked", sponsor_verdict="Strong", sponsor_score=90,
+                                     sponsor_note="old", eligibility_gate="FLAG", eligibility_note="old")})
+        self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": self.SCORES},
+        ]))
+        stored = self.read_state()["a"]
+        for field in ("sponsor_verdict", "sponsor_score", "sponsor_note", "eligibility_note"):
+            self.assertNotIn(field, stored)
+        self.assertEqual(stored["eligibility_gate"], "PASS")
+
+
 if __name__ == "__main__":
     unittest.main()

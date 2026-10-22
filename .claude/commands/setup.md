@@ -245,6 +245,7 @@ Documents cover skills, experience, education, references, and behavioral signal
 - Languages you work in professionally, with proficiency levels (only if not already extracted from `cv/` or `linkedin/` above) - this feeds the Language Gate in `04-job-evaluation.md`, so ask directly rather than skipping it
 - Salary expectations / baseline (optional)
 - Commute or location constraints (if not visible from CV)
+- Work authorization and sponsorship (use the questions from Path C Section 7b below - documents rarely state visa status, and the answers drive a hard gate in `/rank` and `/apply`)
 - Job search configuration (use the questions from Path C Section 9 below)
 
 Then proceed to Step 3 to populate the non-skill files (`CLAUDE.md`, `cv/main_example.tex`, `.claude/skills/job-scraper/search-queries.md`). Step 3 will detect that the seven skill files are already populated and skip those substeps.
@@ -258,7 +259,7 @@ If the user provides a single CV/resume:
 1. Read the document thoroughly.
 2. Extract all structured information: name, contact, education, experience, skills, languages, publications, awards.
 3. Present a summary of what was extracted.
-4. Ask follow-up questions for gaps (behavioral profile, career goals, deal-breakers, languages and proficiency levels if not already extracted, salary expectations, references).
+4. Ask follow-up questions for gaps (behavioral profile, career goals, deal-breakers, languages and proficiency levels if not already extracted, salary expectations, references, and work authorization and sponsorship using Path C Section 7b).
 5. Proceed to Step 3 (file generation).
 
 ---
@@ -325,6 +326,24 @@ If not, ask behavioral questions:
 - What environments to avoid
 - Commute/location constraints
 
+### Section 7b: Work Authorization & Sponsorship
+These answers fill CLAUDE.md's `### Work Authorization & Sponsorship` block. They drive a **hard gate**: `/rank` and `/apply` veto postings the candidate cannot legally take, and score how likely an employer is to sponsor them. Ask every candidate, even one who expects to need nothing - "no sponsorship needed" is itself the answer that switches the gate off. Ask conversationally, one or two questions at a time, and skip follow-ups an earlier answer already settles.
+
+1. **Target market:** "Which country are you job hunting in?" Then: "Are you a citizen or permanent resident there?" If **yes**, record `Needs employer sponsorship: no`, `Sponsor-data class: none`, ask only the security clearance question (5), and move on.
+2. **Citizenship and current status:** "Which citizenship(s) do you hold?" and "What is your current status in [market], if any, and when does it expire?" (e.g. "outside the US", "F-1 STEM OPT until 2027-06", "H-1B until 2026-11", "H-4 EAD"). Never ask for passport or visa *numbers* - they are not needed and must not land in tracked files.
+3. **Visa path:** "Which work-visa route are you pursuing?" Help them pick from their citizenship when they are unsure, but say it is general information to confirm with an immigration attorney, not legal advice:
+   - **US + Australian citizen → E-3.** Specialty-occupation job (bachelor's degree or equivalent), employer files a Labor Condition Application, no lottery, renewable two-year stays. Usually the primary path; H-1B is a fallback.
+   - **US + Chilean or Singaporean citizen → H-1B1.**
+   - **US + Canadian or Mexican citizen → TN** for listed professions (no employer filing data exists for TN).
+   - **US, anyone else → H-1B** (lottery), plus O-1 or L-1 where their situation fits.
+   - Record every path they name in `Visa path(s)`, primary first, and the primary's data key in `Sponsor-data class`: `e3`, `h1b`, `h1b1`, `tn`, `o1`, `l1` (the last three have no public employer data, so Sponsor Strength is skipped for them).
+4. **Need and honest answer:** "Will you need employer sponsorship now, only in the future (for example at an OPT or status expiry, or for a green card), or not at all?" Then confirm the honest answer to the standard application question **"Will you now or in the future require sponsorship?"** and record it in `Answer to ...`. Explain why it is fixed here: `/apply` answers that form question exactly as recorded, every time, and never shades it to get past a filter. A wrong answer can void an offer.
+5. **Security clearance:** "Do you hold an active US security clearance?" Record `none` or the level. Clearance-required postings fail the gate without one.
+6. **Strictness:** "When I score employers, should I show only employers with a proven record of sponsoring your visa (**proven-only**), prefer them but still show the rest (**prefer**, recommended), or ignore sponsor history (**any**)?" For **proven-only**, also ask the minimum: "How many filings in the last how many fiscal years count as proven?" Suggest 3 in 3 for E-3/H-1B1 and 10 in 3 for H-1B (E-3 volumes are a small fraction of H-1B's). Record `Minimum sponsor record`.
+7. **"No sponsorship" postings:** "When a posting says it does not sponsor visas, should I **drop** it or **flag** it for you to judge?" Recommend **flag** for E-3 and H-1B1 candidates - many "no sponsorship" lines mean H-1B, and E-3 is a different, cheaper filing worth asking a recruiter about - and **drop** for H-1B candidates. Citizens-only and clearance-required postings are dropped either way.
+8. **US resume length (US market only):** "US employers usually expect a one-page resume under about ten years of experience, and two pages above that. Which do you want?" The stock CV template is fixed at two pages. If they choose one page, tell them to run `/add-template` after setup and register a one-page resume with `Page limit: 1`. `/apply` then enforces that limit.
+9. **Sponsor data (needs-sponsorship candidates with an `e3`, `h1b` or `h1b1` class):** tell them the Sponsor Strength score needs a one-time download of public Department of Labor (and, for H-1B, USCIS) files, and point at `tools/README_SPONSOR_TOOL.md`. Until then, `/rank` and `/apply` still run the posting-text check and skip the sponsor score with a note. If `sponsor_data.json` already exists, run `python3 tools/sponsor_lookup.py info` and confirm it covers their class.
+
 ### Section 8: References (optional)
 For each reference:
 - Name, title, company, email, phone
@@ -338,7 +357,7 @@ Ask about:
 - **Key skills as search terms:** "Which of your skills are most likely to appear in job postings?" Pick 3-5 that are distinctive and searchable.
 - **Target companies (optional):** "Are there specific companies you'd like to monitor for openings?"
 - **Geographic scope:** "Which cities or regions should I search in? How far are you willing to commute?" Use this to define the location filter tiers (ideal, acceptable, borderline, too far).
-- **Job portals:** "The framework ships country-agnostic search CLIs (`linkedin-search`, `freehire-search`, enabled by default) plus Danish portal demos (Jobindex, Jobbank, Jobdanmark, Jobnet) that ship **disabled**. `/scrape` auto-discovers whatever portal skills are installed under `.agents/skills/` and skips any with `enabled: false`. Which portals fit your market?" **Then act on the answer:** if the user's market is Denmark (or they ask for the Danish boards), edit each of the four Danish `SKILL.md` files and set `enabled: true` in the frontmatter; otherwise leave them disabled and say so - they cost nothing while disabled and can be enabled later by flipping the flag. If the user needs a local board that is not shipped, guide them to `/add-portal` (market-specific skills live in their fork). WebSearch/`site:` queries remain the fallback for portals without a CLI skill.
+- **Job portals:** "The framework ships country-agnostic search CLIs (`linkedin-search`, `freehire-search`, enabled by default), a US-first aggregator (`jsearch-search`: Google for Jobs results from LinkedIn, Indeed, Glassdoor, ZipRecruiter and company sites; enabled, but it needs a JSearch API key in `JSEARCH_API_TOKEN` and skips with an error until one is set), plus Danish portal demos (Jobindex, Jobbank, Jobdanmark, Jobnet) that ship **disabled**. `/scrape` auto-discovers whatever portal skills are installed under `.agents/skills/` and skips any with `enabled: false`. Which portals fit your market?" **Then act on the answer:** if the user's market is Denmark (or they ask for the Danish boards), edit each of the four Danish `SKILL.md` files and set `enabled: true` in the frontmatter; otherwise leave them disabled and say so - they cost nothing while disabled and can be enabled later by flipping the flag. If the user needs a local board that is not shipped, guide them to `/add-portal` (market-specific skills live in their fork). WebSearch/`site:` queries remain the fallback for portals without a CLI skill.
 - **CV language:** "Should your CVs be written in English (the default, accepted in most markets), or in your market's language?" Record the answer as a `CV language: <language>` line in CLAUDE.md's Identity section. Cover letters always match each posting's language automatically; this setting governs the CV only. If the user is unsure, keep English and note they can re-run `/setup --section search` to change it.
 
 **Important:** Also suggest role types the user may not have considered, based on their skill profile. For example:
@@ -355,7 +374,7 @@ This proactive suggestion step helps users discover career paths they might not 
 Once data collection is complete, generate or finish populating the following files. **For Path A**, the seven skill files are already populated by Step A7; check each before writing and skip if its content is no longer placeholder text.
 
 ### 1. Update `CLAUDE.md`
-Replace all `[PLACEHOLDER]` tokens with the user's actual information. Keep the structure, workflow, and verification checklist intact.
+Replace all `[PLACEHOLDER]` tokens with the user's actual information. Keep the structure, workflow, and verification checklist intact. Fill the `### Work Authorization & Sponsorship` block from Section 7b. Every line gets a value: write `n/a` where a question was skipped because an earlier answer settled it, never leave a bracket token, since `/rank` and `/apply` read this block on every posting.
 
 ### 2. Populate `01-candidate-profile.md` *(Path B and C; skip if Path A populated it)*
 Write the full candidate profile with structured sections: Identity (including Languages, with levels), Education, Professional Experience, Independent Projects, Technical Skills, Publications, Awards, References.
@@ -417,6 +436,8 @@ Present a summary:
 > A GitHub fork of the template is always public (forks of public repos cannot be made
 > private), so do not push these commits to a fork. Keep them local, or push to a private
 > repository instead - see SETUP.md section 8 for the private-remote setup.
+>
+> **Work authorization:** [one line: e.g. "E-3 (Australian citizen), sponsorship needed now, prefer proven sponsors, flag 'no sponsorship' postings" or "citizen - no sponsorship gate"]. Sponsor data: [loaded, covering FYxxxx-FYyyyy | not loaded yet - see `tools/README_SPONSOR_TOOL.md`].
 >
 > **Try it out:**
 > - Run `/scrape` to search for matching jobs right now

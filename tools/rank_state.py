@@ -53,6 +53,13 @@ TRACKER = ROOT / "job_search_tracker.csv"
 
 # 04-job-evaluation.md
 WEIGHTS = {"technical": 0.30, "experience": 0.25, "behavioral": 0.15, "career": 0.30}
+# 04-job-evaluation.md Weighting, when Sponsor Strength (dimension 7) is scored:
+# a result carrying a numeric `sponsor` score is weighted with these instead.
+SPONSOR_WEIGHTS = {"technical": 0.25, "experience": 0.20, "behavioral": 0.10, "career": 0.25, "sponsor": 0.20}
+# Sponsorship Gate verdicts (04-job-evaluation.md). FAIL vetoes like a
+# location or language FAIL; UNVERIFIED (posting silent) and FLAG stay ranked.
+ELIGIBILITY_VERDICTS = ("PASS", "FAIL", "FLAG", "UNVERIFIED")
+SPONSOR_VERDICTS = ("Strong", "Some history", "None found", "n/a")
 BANDS = ((75, "Strong Fit"), (60, "Good Fit"), (45, "Moderate Fit"), (30, "Weak Fit"), (0, "Poor Fit"))
 
 DEFAULT_LIMIT = 10
@@ -282,8 +289,11 @@ def cmd_sweep(args) -> int:
 def overall_score(scores: dict) -> int:
     if not isinstance(scores, dict):
         raise ValueError("scores must be an object")
+    # Absent or null `sponsor` means dimension 7 was not scored (no sponsorship
+    # needed, strictness "any", no public data, or no data file loaded).
+    weights = WEIGHTS if scores.get("sponsor") is None else SPONSOR_WEIGHTS
     total = 0.0
-    for dim, weight in WEIGHTS.items():
+    for dim, weight in weights.items():
         value = scores.get(dim)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError(f"missing or non-numeric score '{dim}'")
@@ -391,6 +401,18 @@ def cmd_apply(args) -> int:
         except ValueError as exc:
             errors.append({"key": key, "error": str(exc)})
             continue
+        eligibility = result.get("eligibility_gate") or "PASS"
+        if eligibility not in ELIGIBILITY_VERDICTS:
+            errors.append(
+                {"key": key, "error": f"unknown eligibility_gate {eligibility!r}; expected one of {', '.join(ELIGIBILITY_VERDICTS)}"}
+            )
+            continue
+        sponsor_verdict = result.get("sponsor_verdict")
+        if sponsor_verdict is not None and sponsor_verdict not in SPONSOR_VERDICTS:
+            errors.append(
+                {"key": key, "error": f"unknown sponsor_verdict {sponsor_verdict!r}; expected one of {', '.join(SPONSOR_VERDICTS)}"}
+            )
+            continue
 
         # A missing deadline from the fresh fetch is not a correction to the
         # stored date. Scored keys are excluded from the later sweep, so apply
@@ -422,6 +444,29 @@ def cmd_apply(args) -> int:
             entry.pop("language_note", None)
         else:
             entry["language_note"] = result.get("language_note")
+        # Sponsorship Gate (04-job-evaluation.md). Persisted like the language
+        # gate so "why was this excluded" survives the terminal output; the
+        # note and sponsor fields are plain bounded text, never acted on.
+        entry["eligibility_gate"] = eligibility
+        if eligibility == "PASS":
+            entry.pop("eligibility_note", None)
+        else:
+            entry["eligibility_note"] = " ".join(str(result.get("eligibility_note") or "").split())[:300] or None
+        if sponsor_verdict is None:
+            for field in ("sponsor_verdict", "sponsor_score", "sponsor_note"):
+                entry.pop(field, None)  # a rescore without dimension 7 drops a stale one
+        else:
+            entry["sponsor_verdict"] = sponsor_verdict
+            sponsor_score = (result.get("scores") or {}).get("sponsor")
+            if sponsor_score is None:
+                entry.pop("sponsor_score", None)
+            else:
+                entry["sponsor_score"] = int(sponsor_score + 0.5)
+            note = " ".join(str(result.get("sponsor_note") or "").split())[:300]
+            if note:
+                entry["sponsor_note"] = note
+            else:
+                entry.pop("sponsor_note", None)
         # Absence is not a correction: a fetch that degraded to a listing page
         # returns no deadline, and blanking a stored one would erase a real
         # date and make the entry immortal to rule 6's sweep.
@@ -462,6 +507,11 @@ def cmd_apply(args) -> int:
                 "location_verdict": entry["location_verdict"],
                 "language_gate": entry["language_gate"],
                 "language_note": entry.get("language_note"),
+                "eligibility_gate": entry["eligibility_gate"],
+                "eligibility_note": entry.get("eligibility_note"),
+                "sponsor_verdict": entry.get("sponsor_verdict"),
+                "sponsor_score": entry.get("sponsor_score"),
+                "sponsor_note": entry.get("sponsor_note"),
                 "deadline": entry.get("deadline"),
                 "posted_date": entry.get("posted_date"),
                 "urgent": bool(parsed and today <= parsed <= today + timedelta(days=URGENT_DAYS)),
@@ -475,7 +525,7 @@ def cmd_apply(args) -> int:
         save_state(args.state, doc)
 
     rows.sort(key=lambda r: (r["score"], r["urgent"]), reverse=True)
-    veto = lambda r: r["location_verdict"] == "FAIL" or r["language_gate"] == "FAIL"
+    veto = lambda r: "FAIL" in (r["location_verdict"], r["language_gate"], r["eligibility_gate"])
     vetoed = [r for r in rows if veto(r)]
     ranked = [r for r in rows if not veto(r)]
     print(

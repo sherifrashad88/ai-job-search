@@ -119,3 +119,9 @@ company_research/*.json
 
 # Brainstorm mockups (superpowers visual companion) - never ship
 .superpowers/
+
+# US visa-sponsor data (tools/sponsor_lookup.py): public government files, but large -
+# the raw DOL/USCIS downloads and the aggregated lookup file stay out of git.
+sponsor_data.json
+sponsor_data.json.tmp
+sponsor_raw/

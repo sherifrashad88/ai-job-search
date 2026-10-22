@@ -1,0 +1,122 @@
+{
+  "status": "OK",
+  "request_id": "6b0c2f4e-1d7a-4c3e-9f51-2a8e7d4b9c10",
+  "parameters": {
+    "query": "data analyst in houston, tx",
+    "page": 1,
+    "num_pages": 1,
+    "date_posted": "month",
+    "country": "us",
+    "language": "en"
+  },
+  "data": [
+    {
+      "job_id": "Xk1HqJ3vZbQAAAAAAAAAAA==",
+      "job_title": "Data Analyst",
+      "employer_name": "Contoso Energy",
+      "employer_logo": null,
+      "employer_website": "https://www.contoso-energy.example",
+      "job_publisher": "LinkedIn",
+      "job_employment_type": "Full-time",
+      "job_employment_types": ["FULLTIME"],
+      "job_apply_link": "https://jobs.example.net/view/0000000001",
+      "job_apply_is_direct": false,
+      "apply_options": [
+        { "publisher": "LinkedIn", "apply_link": "https://jobs.example.net/view/0000000001", "is_direct": false },
+        { "publisher": "Contoso Energy Careers", "apply_link": "https://careers.contoso-energy.example/jobs/4411", "is_direct": true }
+      ],
+      "job_description": "Contoso Energy is hiring a Data Analyst for its Houston office.\n\nYou will build dashboards in Power BI and write SQL against our operations warehouse.",
+      "job_is_remote": false,
+      "job_posted_at": "3 days ago",
+      "job_posted_at_timestamp": 1792368000,
+      "job_posted_at_datetime_utc": "2026-10-19T00:00:00.000Z",
+      "job_location": "Houston, TX",
+      "job_city": "Houston",
+      "job_state": "Texas",
+      "job_country": "US",
+      "job_latitude": 29.7604267,
+      "job_longitude": -95.3698028,
+      "job_benefits": ["health_insurance", "retirement_savings"],
+      "job_google_link": null,
+      "job_salary": null,
+      "job_min_salary": 72000,
+      "job_max_salary": 90000,
+      "job_salary_period": "YEAR",
+      "job_highlights": {
+        "Qualifications": ["2+ years of SQL", "Power BI or Tableau"],
+        "Responsibilities": ["Build and maintain operational dashboards"]
+      },
+      "job_onet_soc": "15203100",
+      "job_onet_job_zone": "4"
+    },
+    {
+      "job_id": "pQ7rT2uVwXyAAAAAAAAAAA==",
+      "job_title": "Remote Business Intelligence Analyst",
+      "employer_name": "Fabrikam Health",
+      "employer_website": null,
+      "job_publisher": "Indeed",
+      "job_employment_type": "Full-time",
+      "job_apply_link": "https://apply.example.org/job/abc123",
+      "job_apply_is_direct": false,
+      "apply_options": [
+        { "publisher": "Indeed", "apply_link": "https://apply.example.org/job/abc123", "is_direct": false }
+      ],
+      "job_description": "Fully remote BI analyst role supporting our clinical operations team.",
+      "job_is_remote": true,
+      "job_posted_at_datetime_utc": "2026-10-21T14:30:00.000Z",
+      "job_city": "Houston",
+      "job_state": "TX",
+      "job_country": "US",
+      "job_min_salary": null,
+      "job_max_salary": null,
+      "job_salary_period": null,
+      "job_highlights": {}
+    },
+    {
+      "job_id": "aB3cD4eF5gHAAAAAAAAAAA==",
+      "job_title": "R&amp;D Data Analyst (Contract)",
+      "employer_name": "Northwind Labs",
+      "job_publisher": "Northwind Labs Careers",
+      "job_employment_type": null,
+      "job_employment_types": ["CONTRACTOR"],
+      "job_apply_link": "https://careers.northwind.example/r-and-d-analyst",
+      "job_apply_is_direct": true,
+      "job_is_remote": false,
+      "job_posted_at_datetime_utc": "2026-10-15T09:00:00.000Z",
+      "job_location": "Sugar Land, TX",
+      "job_min_salary": 45,
+      "job_max_salary": 55,
+      "job_salary_currency": "USD",
+      "job_salary_period": "HOUR"
+    },
+    {
+      "job_id": "zZ9yY8xX7wVAAAAAAAAAAA==",
+      "job_title": "Junior Data Analyst",
+      "employer_name": "Tailspin Logistics",
+      "job_publisher": "ZipRecruiter",
+      "job_employment_type": "Full-time",
+      "job_apply_link": "https://board.example.com/jobs/junior-data-analyst-77",
+      "job_apply_is_direct": false,
+      "job_is_remote": false,
+      "job_posted_at_datetime_utc": "2026-09-28T00:00:00.000Z",
+      "job_location": "Katy, TX"
+    },
+    {
+      "job_id": "mN1oP2qR3sTAAAAAAAAAAA==",
+      "job_title": "Analytics Engineer",
+      "employer_name": null,
+      "job_publisher": null,
+      "job_apply_link": null,
+      "apply_options": [
+        { "publisher": "Glassdoor", "apply_link": "https://reviews.example.com/job-listing/analytics-engineer-9", "is_direct": false }
+      ],
+      "job_is_remote": null,
+      "job_posted_at_datetime_utc": null,
+      "job_country": "US"
+    },
+    {
+      "job_title": "Row without a job_id is dropped",
+      "employer_name": "Nobody Inc"
+    }
+  ]
+}

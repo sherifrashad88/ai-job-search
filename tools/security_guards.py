@@ -65,6 +65,8 @@ ALLOWED_PERMISSIONS = {
     "Bash(bun run .agents/skills/jobnet-search/cli/src/cli.ts:*)",
     "Bash(bun run .agents/skills/linkedin-search/cli/src/cli.ts:*)",
     "Bash(bun run .agents/skills/freehire-search/cli/src/cli.ts:*)",
+    # US-market portal (JSearch API, key from JSEARCH_API_TOKEN in the environment).
+    "Bash(bun run .agents/skills/jsearch-search/cli/src/cli.ts:*)",
     "Bash(python salary_lookup.py:*)",
     "Bash(python3 salary_lookup.py:*)",
     "Bash(python tools/rank_state.py:*)",
@@ -87,6 +89,11 @@ ALLOWED_PERMISSIONS = {
     # Reads a file or stdin, writes only to an explicit --out, never fetches.
     "Bash(python tools/posting_guard.py:*)",
     "Bash(python3 tools/posting_guard.py:*)",
+    # US visa-sponsor lookup (04-job-evaluation.md Sponsorship Gate and Sponsor
+    # Strength, /rank Step 1b, /apply Step 1). Reads local files only, writes
+    # only sponsor_data.json via an explicit `import`, never fetches.
+    "Bash(python tools/sponsor_lookup.py:*)",
+    "Bash(python3 tools/sponsor_lookup.py:*)",
 }
 
 # Rules that must stay in .claude/settings.json permissions.ask. An ask rule

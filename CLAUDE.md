@@ -87,6 +87,22 @@ automatically from your Languages table above - don't duplicate them here. -->
 - [DEALBREAKER_1]
 - [DEALBREAKER_2]
 
+### Work Authorization & Sponsorship
+<!-- Asked by /setup (Section 7b). Read by 04-job-evaluation.md's Sponsorship Gate and Sponsor
+Strength dimension, /rank's eligibility veto, tools/sponsor_lookup.py, and the work-authorization
+answers /apply drafts for application forms. Never stored here: passport or visa numbers. -->
+- **Target job market:** [YOUR_TARGET_COUNTRY]
+- **Citizenship(s):** [YOUR_CITIZENSHIPS]
+- **Current status in the target market:** [YOUR_CURRENT_STATUS] (expires [STATUS_EXPIRY_OR_NA])
+- **Needs employer sponsorship:** [NOW_OR_FUTURE_OR_NO]
+- **Visa path(s):** [YOUR_VISA_PATHS]
+- **Sponsor-data class:** [SPONSOR_DATA_CLASS] <!-- e3 | h1b | h1b1 | tn | o1 | l1 | none: the --visa value for tools/sponsor_lookup.py -->
+- **Sponsor strictness:** [PROVEN_ONLY_OR_PREFER_OR_ANY]
+- **Minimum sponsor record:** [N] filings in the last [YEARS] fiscal years <!-- used only by proven-only -->
+- **"No sponsorship" postings:** [DROP_OR_FLAG]
+- **Security clearance held:** [NONE_OR_LEVEL]
+- **Answer to "Will you now or in the future require sponsorship?":** [YES_OR_NO]
+
 ## Repo Structure
 - `cv/` - LaTeX CV variants (moderncv template, banking style)
 - `cover_letters/` - LaTeX cover letters (custom cover.cls template)

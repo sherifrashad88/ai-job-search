@@ -48,7 +48,19 @@ Then read the scoring framework and profile **once**:
 - `.claude/skills/job-application-assistant/04-job-evaluation.md`
 - `.claude/skills/job-application-assistant/01-candidate-profile.md`
 
+Also take CLAUDE.md's `### Work Authorization & Sponsorship` block, which is already in context. It decides whether the Sponsorship Gate and Sponsor Strength (dimension 7) run this batch: see `04-job-evaluation.md`.
+
 State how many jobs will be ranked and how many are deferred before proceeding.
+
+### Step 1b: Sponsor lookups (only when dimension 7 applies)
+
+When the profile block needs sponsorship, `Sponsor strictness` is `proven-only` or `prefer`, `Sponsor-data class` is `e3`, `h1b` or `h1b1`, and `sponsor_data.json` exists, look up every distinct company in the batch **here, in code, before any agent runs**. It costs no fetch and no scoring tokens:
+
+```bash
+python3 tools/sponsor_lookup.py lookup "<company>" --visa <class> --title "<title>" --min <N> --years <YEARS> --json
+```
+
+Keep per job: `score`, `verdict`, `meets_minimum`, `match`, and one short `sponsor_note` written from the output ("6 E-3 filings FY2024-FY2026, incl. Data Analyst"; add "summed across N legal names" when `match` is not `exact`). Under `proven-only`, a job whose lookup has `meets_minimum: false` gets `eligibility_gate: FAIL` with that count as its note, and does not need an agent. When dimension 7 does not apply, every job's sponsor score is `null` and its `sponsor_verdict` is omitted. Say once why (for example "sponsor data not loaded").
 
 ---
 

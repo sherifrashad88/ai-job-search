@@ -1,0 +1,41 @@
+{
+  "status": "OK",
+  "request_id": "0f9e8d7c-6b5a-4f3e-8d2c-1b0a9e8f7d6c",
+  "parameters": { "job_id": "Xk1HqJ3vZbQAAAAAAAAAAA==", "country": "us" },
+  "data": [
+    {
+      "job_id": "Xk1HqJ3vZbQAAAAAAAAAAA==",
+      "job_title": "Data Analyst",
+      "employer_name": "Contoso Energy",
+      "employer_website": "https://www.contoso-energy.example",
+      "job_publisher": "LinkedIn",
+      "job_employment_type": "Full-time",
+      "job_apply_link": "https://jobs.example.net/view/0000000001",
+      "job_apply_is_direct": false,
+      "apply_options": [
+        { "publisher": "LinkedIn", "apply_link": "https://jobs.example.net/view/0000000001", "is_direct": false },
+        { "publisher": "Contoso Energy Careers", "apply_link": "https://careers.contoso-energy.example/jobs/4411", "is_direct": true },
+        { "publisher": "Indeed", "apply_link": "https://apply.example.org/job/xyz789", "is_direct": false }
+      ],
+      "job_description": "Contoso Energy is hiring a Data Analyst for its Houston office.\r\n\r\n\r\nYou will build dashboards in Power BI &amp; write SQL against our operations warehouse.<br>Hybrid: 3 days on site.",
+      "job_is_remote": false,
+      "job_posted_at_datetime_utc": "2026-10-19T00:00:00.000Z",
+      "job_location": "Houston, TX",
+      "job_city": "Houston",
+      "job_state": "Texas",
+      "job_country": "US",
+      "job_min_salary": 72000,
+      "job_max_salary": 90000,
+      "job_salary_period": "YEAR",
+      "job_offer_expiration_datetime_utc": "2026-11-18T00:00:00.000Z",
+      "job_offer_expiration_timestamp": 1794960000,
+      "job_highlights": {
+        "Qualifications": ["2+ years of SQL", "Power BI or Tableau", "Bachelor's degree in a quantitative field"],
+        "Responsibilities": ["Build and maintain operational dashboards", "Partner with field operations on KPIs"],
+        "Benefits": ["Medical, dental and vision", "401(k) match"]
+      },
+      "estimated_salaries": [],
+      "employer_reviews": []
+    }
+  ]
+}
