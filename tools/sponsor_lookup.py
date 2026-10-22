@@ -19,7 +19,7 @@ tools/README_SPONSOR_TOOL.md), `import` aggregates them into sponsor_data.json
 in the repo root, and every later call reads only that file.
 
 Usage:
-  python3 tools/sponsor_lookup.py import FILE [FILE ...] [--classes e3,h1b,h1b1] [--out PATH]
+  python3 tools/sponsor_lookup.py import FILE|FOLDER [...] [--classes e3,h1b,h1b1] [--out PATH]
   python3 tools/sponsor_lookup.py info
   python3 tools/sponsor_lookup.py lookup "Company" --visa e3 [--title TEXT] [--years 3] [--min N] [--strong N] [--json]
   python3 tools/sponsor_lookup.py top --visa e3 [--state NY] [--title TEXT] [--years 3] [--limit 25] [--json]
@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import glob
 import io
 import json
 import re
@@ -45,6 +46,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "sponsor_data.json"
+IMPORT_SUFFIXES = {".xlsx", ".xlsm", ".csv", ".tsv", ".txt"}
 DATA_VERSION = 1
 
 # Visa classes with public employer-level filing data. LCA values are matched
@@ -438,10 +440,26 @@ def cmd_import(args) -> int:
     if unknown:
         sys.exit(f"unknown visa class(es): {', '.join(sorted(unknown))}; expected {', '.join(VISA_CLASSES)}")
     builder = Builder(classes)
+    paths = []
     for name in args.files:
         path = Path(name)
-        if not path.is_file():
+        if path.is_dir():
+            # A folder (e.g. sponsor_raw) - also the Windows path: PowerShell and
+            # cmd pass `sponsor_raw/*.xlsx` through unexpanded.
+            found = sorted(p for p in path.iterdir() if p.is_file() and p.suffix.lower() in IMPORT_SUFFIXES)
+            if not found:
+                sys.exit(f"no .xlsx/.csv/.tsv/.txt files in {path}")
+            paths.extend(found)
+        elif any(ch in name for ch in "*?["):
+            found = sorted(Path(p) for p in glob.glob(name) if Path(p).is_file())
+            if not found:
+                sys.exit(f"no files match {name}")
+            paths.extend(found)
+        elif path.is_file():
+            paths.append(path)
+        else:
             sys.exit(f"not a file: {path}")
+    for path in paths:
         header, rows = iter_rows(path)
         kind = args.kind if args.kind != "auto" else detect_kind(header)
         if kind == "lca":

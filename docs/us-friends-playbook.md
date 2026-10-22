@@ -119,7 +119,20 @@ One copy of the repo serves **one job seeker**. Each friend gets their own priva
 
 ## 5. SOPs
 
-### SOP-1: Onboard a new friend
+### SOP-0: Friend installs it on their own laptop and Claude account (recommended)
+
+| # | Trigger | Action | Condition | Tags / Fields | Owner | Stop logic | Escalation |
+|---|---|---|---|---|---|---|---|
+| 1 | Friend says yes | Send them `docs/friend-install-guide.md` (link: `https://github.com/sherifrashad88/ai-job-search/blob/claude/hopeful-goodall-uegtb0/docs/friend-install-guide.md`) | Friend has a Claude Pro/Max plan | — | Sherif | Guide sent | No plan → Option B below (you run it for them) |
+| 2 | Guide received | Friend: Git + Python, `git clone`, then `scripts/install-mac.sh` or `scripts\install-windows.ps1` | Mac or Windows 10/11 | — | Friend | Installer finishes | Errors → friend sends `tools/doctor.py` output (never API keys) |
+| 3 | Installer done | Friend runs `python3 tools/doctor.py` until no `MISSING` lines | — | — | Friend | Ready | LaTeX issues → MiKTeX "Always install" / MacTeX |
+| 4 | Ready | Friend runs `claude`, logs in with **their own account**, runs `/setup` | CV + LinkedIn PDF in `documents/` | Work Authorization block | Friend (Sherif on a call, optional) | Profile filled | Unsure visa route → attorney |
+| 5 | Profile done | Friend adds their own JSearch key and imports sponsor data (guide steps 7–8) | Needs sponsorship | `JSEARCH_API_TOKEN`, `sponsor_data.json` | Friend | `doctor.py` shows both OK | — |
+| 6 | Sherif pushes an update | Friend runs `git pull upstream claude/hopeful-goodall-uegtb0` | — | — | Friend | Pulled | Conflict → ask Claude in the folder to merge, keeping the profile |
+
+Privacy by design: the installer renames the shared repo to `upstream` and **disables pushing to it**. The friend's profile, CVs and tracker stay on their laptop.
+
+### SOP-1: Onboard a new friend (Option B: you run it for them)
 
 | # | Trigger | Action | Condition | Tags / Fields | Owner | Stop logic | Escalation |
 |---|---|---|---|---|---|---|---|
@@ -136,7 +149,7 @@ One copy of the repo serves **one job seeker**. Each friend gets their own priva
 |---|---|---|---|---|---|---|---|
 | 1 | New quarter, or new friend with a visa need | Download DOL LCA disclosure `.xlsx` (last 3 fiscal years) from dol.gov → ETA → Foreign Labor → Performance Data | — | `sponsor_raw/` | Sherif | Files saved | Page moved → search "OFLC disclosure data" |
 | 2 | H-1B friend only | Download USCIS H-1B Employer Data Hub files | Class = h1b | `sponsor_raw/` | Sherif | Files saved | — |
-| 3 | Files saved | `python3 tools/sponsor_lookup.py import sponsor_raw/*` (add `--classes e3` for E-3 only) | `pip install openpyxl` for `.xlsx` | `sponsor_data.json` | Sherif | Summary prints | Slow → save as CSV first |
+| 3 | Files saved | `python3 tools/sponsor_lookup.py import sponsor_raw` (add `--classes e3` for E-3 only) | `pip install openpyxl` for `.xlsx` | `sponsor_data.json` | Sherif | Summary prints | Slow → save as CSV first |
 | 4 | Imported | `python3 tools/sponsor_lookup.py info` | — | fiscal years | Sherif | Latest FY present | Missing class → re-import with `--classes` |
 | 5 | Verified | `top --visa e3 --state [ST] --title "[title]"` → refresh Priority 5 watchlist | Needs sponsorship | `[SPONSOR_COMPANY_n]` | Sherif | List updated | — |
 
@@ -185,7 +198,7 @@ One copy of the repo serves **one job seeker**. Each friend gets their own priva
 
 ```bash
 # Build data (once per quarter)
-python3 tools/sponsor_lookup.py import sponsor_raw/*.xlsx --classes e3
+python3 tools/sponsor_lookup.py import sponsor_raw --classes e3
 python3 tools/sponsor_lookup.py info
 
 # One employer
@@ -216,7 +229,7 @@ python3 tools/sponsor_lookup.py check-posting --in posting.txt --visa e3 --needs
 | 3 | Daily automatic scan (e.g. 7:00 AM CST) per friend | Sherif | Ask Claude to set a scheduled task once repos exist |
 | 4 | Telegram / email digest of daily matches | Sherif | Not built. Phase 2 of the web-app blueprint |
 | 5 | Per-friend cost tracking | Sherif | One Anthropic API key per friend in a "Job Hunter" Console workspace, monthly usage report |
-| 6 | Merge this branch | Sherif | Open a PR from `claude/hopeful-goodall-uegtb0` when ready |
+| 6 | Merge this branch (then friends can clone without `-b claude/hopeful-goodall-uegtb0`) | Sherif | Open a PR from `claude/hopeful-goodall-uegtb0` when ready |
 | 7 | Web app (Next.js + Supabase + Stripe) | Later | Reuse `04-job-evaluation.md`, `apply.md`, `posting_guard.py`, `sponsor_lookup.py` as the brain |
 
 ---

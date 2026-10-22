@@ -31,7 +31,7 @@ It feeds the **Sponsorship Gate** and the **Sponsor Strength** dimension in `.cl
 3. **Build the lookup file:**
 
    ```bash
-   python3 tools/sponsor_lookup.py import sponsor_raw/*.xlsx sponsor_raw/*.csv
+   python3 tools/sponsor_lookup.py import sponsor_raw          # every .xlsx/.csv in the folder; works on Windows too
    ```
 
    Reading `.xlsx` needs `pip install openpyxl`. A full-year file has hundreds of thousands of rows and takes a few minutes. You can also open it and save it as CSV first. If the friend only needs E-3, add `--classes e3` to cut time and size. Re-run `import` each quarter with all the files: duplicate case numbers across overlapping files are counted once.

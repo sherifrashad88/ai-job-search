@@ -15,6 +15,14 @@ per-file diff commands.
 
 ### Added
 
+- **Self-install for a friend's own laptop and Claude account** - `docs/friend-install-guide.md`
+  (step-by-step for macOS and Windows), `scripts/install-mac.sh` and `scripts/install-windows.ps1`
+  (official Claude Code and Bun installers, LaTeX with a prompt, Python packages, portal CLIs, then they
+  rename the shared repo remote to `upstream` and disable pushing to it, so a profile can never be pushed
+  to a public fork), and `tools/doctor.py` (readiness checklist with per-OS fix commands; `--fix` installs
+  only the Python packages and portal CLI dev types; `--json`). `sponsor_lookup.py import` now takes a
+  folder (`import sponsor_raw`), because PowerShell does not expand `sponsor_raw/*.xlsx`.
+
 - **US market: visa-sponsorship gate, sponsor data and a JSearch portal** - for candidates who need
   a US work visa. `/setup` Section 7b asks work authorization (visa path: E-3, H-1B1, TN, H-1B; strictness;
   drop or flag "no sponsorship" postings) into a new CLAUDE.md `Work Authorization & Sponsorship` block.

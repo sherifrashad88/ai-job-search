@@ -130,6 +130,19 @@ class ImportTests(SponsorDataCase):
         self.assertNotIn("amazon services", data["employers"])
         self.assertEqual(data["metadata"]["classes"], ["e3"])
 
+    def test_folder_and_unexpanded_glob_are_accepted(self):
+        # PowerShell passes `sponsor_raw/*.csv` through literally; a folder works everywhere.
+        raw = self.tmp / "sponsor_raw"
+        raw.mkdir()
+        write_csv(raw / "LCA_FY2026_Q2.csv", LCA_HEADER, LCA_ROWS)
+        (raw / "notes.md").write_text("ignored", encoding="utf-8")
+        for target in (raw, raw / "*.csv"):
+            out = self.tmp / "folder.json"
+            proc = run("import", target, "--classes", "e3", "--out", out)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(data["employers"]["atlassian"]["lca"]["e3"]["2026"], {"certified": 3, "denied": 1})
+
     def test_unrecognised_file_is_a_clear_error(self):
         junk = self.tmp / "junk.csv"
         write_csv(junk, ["a", "b"], [["1", "2"]])

@@ -69,6 +69,8 @@ The framework encodes career guidance best practices, including structured evalu
 
 ## Quick start
 
+> **Setting this up for a friend in the US?** Send them [`docs/friend-install-guide.md`](docs/friend-install-guide.md): it installs everything on their own laptop under their own Claude account (`scripts/install-mac.sh` / `scripts/install-windows.ps1`, then `tools/doctor.py`). [`docs/us-friends-playbook.md`](docs/us-friends-playbook.md) has the operator SOPs.
+
 > 🎥 **Prefer to see it in action first?** [The Next New Thing did a hands-on walkthrough](https://www.youtube.com/watch?v=HoVxjMNFYv4) of how the workflow is actually used, from setup to a finished application (recorded August 2026 - commands may have evolved since).
 
 ### 1. Fork and clone
