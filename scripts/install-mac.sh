@@ -71,14 +71,28 @@ say "4/6 Python packages and job-board tools"
 "$PY" tools/install_portal_clis.py || echo "install_portal_clis.py reported a problem (the search tools still run with plain bun)"
 
 say "5/6 Keeping your copy private"
+shared="github.com/sherifrashad88/ai-job-search"
+push_lock="DISABLED-shared-repo-never-push-your-profile"
 origin="$(git remote get-url origin 2>/dev/null || true)"
+upstream="$(git remote get-url upstream 2>/dev/null || true)"
 case "$origin" in
-  *github.com/sherifrashad88/ai-job-search*)
+  *"$shared"*)
     git remote rename origin upstream
-    git remote set-url --push upstream "DISABLED-shared-repo-never-push-your-profile"
+    git remote set-url --push upstream "$push_lock"
     echo "Renamed the shared repo remote to 'upstream'. Get updates later with:  git pull upstream"
     ;;
-  "") echo "No git remote (downloaded as ZIP?) - nothing to change." ;;
+  "")
+    case "$upstream" in
+      # Already done by an earlier run: origin no longer exists, which is not
+      # the same thing as never having had a remote. Re-assert the push lock in
+      # case the push URL was restored by hand.
+      *"$shared"*)
+        git remote set-url --push upstream "$push_lock"
+        echo "Already private: the shared repo is 'upstream' and pushing to it is disabled. Get updates with:  git pull upstream"
+        ;;
+      *) echo "No git remote (downloaded as ZIP?) - nothing to change." ;;
+    esac
+    ;;
   *)  echo "origin is $origin - leaving it. Make sure that repository is PRIVATE before pushing your profile." ;;
 esac
 mkdir -p sponsor_raw

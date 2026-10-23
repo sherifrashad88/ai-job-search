@@ -59,6 +59,16 @@ per-file diff commands.
 
 ### Fixed
 
+- **The installers no longer report a renamed privacy remote as "no git remote"** (`scripts/install-windows.ps1`,
+  `scripts/install-mac.sh`) - step 5 renames the shared repo's `origin` to `upstream` and disables pushing to it,
+  so on any later run `git remote get-url origin` fails. Both scripts read that empty result as "No git remote
+  (downloaded as ZIP?) - nothing to change.", telling a friend who re-runs the installer after a failed step that
+  their clone has no remote at all, right where they would be looking for why `git pull upstream` is not working.
+  Step 5 now reads `upstream` as well: an `upstream` that points at the shared repo reports "Already private" with
+  the `git pull upstream` reminder and re-applies the push lock, in case the push URL was restored by hand. The
+  genuine no-remote case keeps its ZIP message, and a friend's own `origin` is still left alone with the
+  make-it-private warning. Checked against a throwaway clone in all five states.
+
 - **`freehire-search detail` no longer asks the API for a slug cut out of a URL on another
   host** (#623, fixes #622, `.agents/skills/freehire-search/cli/src/helpers.ts`, `tests/parsing.test.ts`,
   `tests/commands.test.ts`, `SKILL.md`) - `normalizeSlug` took the segment after `/jobs/` from

@@ -65,13 +65,23 @@ if ($LASTEXITCODE -ne 0) { Write-Host "pip install failed - run: $Py -m pip inst
 & $Py tools\install_portal_clis.py
 
 Say "5/6 Keeping your copy private"
+$Shared = "github.com/sherifrashad88/ai-job-search"
+$PushLock = "DISABLED-shared-repo-never-push-your-profile"
 $origin = git remote get-url origin 2>$null
-if ($origin -match "github.com/sherifrashad88/ai-job-search") {
+$upstream = git remote get-url upstream 2>$null
+if ($origin -match $Shared) {
     git remote rename origin upstream
-    git remote set-url --push upstream "DISABLED-shared-repo-never-push-your-profile"
+    git remote set-url --push upstream $PushLock
     Write-Host "Renamed the shared repo remote to 'upstream'. Get updates later with:  git pull upstream"
-} elseif (-not $origin) { Write-Host "No git remote (downloaded as ZIP?) - nothing to change." }
-else { Write-Host "origin is $origin - leaving it. Make sure that repository is PRIVATE before pushing your profile." }
+} elseif ($origin) {
+    Write-Host "origin is $origin - leaving it. Make sure that repository is PRIVATE before pushing your profile."
+} elseif ($upstream -match $Shared) {
+    # Already done by an earlier run: origin no longer exists, which is not the
+    # same thing as never having had a remote. Re-assert the push lock in case
+    # the push URL was restored by hand.
+    git remote set-url --push upstream $PushLock
+    Write-Host "Already private: the shared repo is 'upstream' and pushing to it is disabled. Get updates with:  git pull upstream"
+} else { Write-Host "No git remote (downloaded as ZIP?) - nothing to change." }
 New-Item -ItemType Directory -Force -Path sponsor_raw | Out-Null
 
 Say "6/6 Readiness check"
