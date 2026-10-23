@@ -352,6 +352,30 @@ class CheckPostingTests(unittest.TestCase):
         self.assertTrue(result["guard"].startswith("posting_guard:"))
         self.assertFalse(any(f["category"] == "sponsorship_offered" for f in result["findings"]))
 
+    def test_crlf_stdin_splits_the_same_as_lf(self):
+        """A Windows pipe carries CRLF, and the `--- text ---` split must still fire.
+
+        The stdin branch reads bytes (a text read dies on non-cp1252 input), so
+        unlike --in it gets no newline translation: before this, CRLF input kept
+        posting_guard's header and findings JSON in the scanned text and dropped
+        the `guard` provenance line. Fed as explicit bytes so the test means the
+        same thing on every OS.
+        """
+        gated = (
+            "posting_guard: clean\n--- findings ---\n{}\n--- text ---\n"
+            "Data Analyst in Austin. We do not offer sponsorship.\n"
+        )
+        results = {}
+        for label, payload in (("lf", gated), ("crlf", gated.replace("\n", "\r\n"))):
+            proc = subprocess.run(
+                [sys.executable, str(TOOL), "check-posting", "--visa", "e3", "--json"],
+                input=payload.encode("utf-8"), capture_output=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
+            results[label] = json.loads(proc.stdout.decode("utf-8"))
+        self.assertEqual(results["crlf"], results["lf"], "CRLF input must give the same report as LF")
+        self.assertEqual(results["crlf"]["guard"], "posting_guard: clean")
+
     def test_cli_reads_stdin(self):
         proc = run("check-posting", "--visa", "e3", "--needs-sponsorship", "yes", "--json", stdin="We do not offer sponsorship.")
         self.assertEqual(proc.returncode, 0, proc.stderr)

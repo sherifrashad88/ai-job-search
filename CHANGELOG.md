@@ -59,6 +59,19 @@ per-file diff commands.
 
 ### Fixed
 
+- **`sponsor_lookup.py check-posting` now splits `posting_guard.py` output piped in on Windows**
+  (`tools/sponsor_lookup.py`, `tests/test_sponsor_lookup.py`) - the stdin branch reads bytes, because a text read
+  decodes a piped posting with the ANSI code page and dies on the first non-cp1252 byte. A byte read gets no
+  newline translation, so a Windows pipe arrives as CRLF and the `"
+--- text ---
+"` test never matched: the
+  gate's own header and findings JSON stayed in the text being scanned, and the `guard` provenance line was
+  dropped from the report. `--in` was unaffected, since `read_text()` translates newlines. stdin is now normalised
+  to `
+` at the input boundary, so every downstream pattern sees the same text either way. The existing test
+  only caught this on Windows - `subprocess` with `text=True` writes CRLF there and LF on Linux, so CI was green -
+  so the new regression test feeds explicit CRLF bytes and asserts the report matches the LF one.
+
 - **`doctor.py` no longer reports Claude Code as MISSING when the desktop app is running it**
   (`tools/doctor.py`, `tests/test_doctor.py`) - the check was `shutil.which("claude")`, which only sees the CLI
   installer's binary. Claude Desktop ships its own copy outside PATH, so a friend who opens the folder in the

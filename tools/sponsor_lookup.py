@@ -954,7 +954,12 @@ def cmd_check_posting(args) -> int:
     else:
         # Bytes, not sys.stdin.read(): a piped stdin on Windows decodes with the
         # ANSI code page and dies on the first non-cp1252 byte of a posting.
-        text = sys.stdin.buffer.read().decode("utf-8", "replace")
+        # read_text() above translates newlines and a byte read does not, so
+        # normalise here too: a Windows pipe arrives as CRLF, which missed the
+        # `--- text ---` split below and left posting_guard's own header and
+        # findings JSON in the text being scanned.
+        raw = sys.stdin.buffer.read().decode("utf-8", "replace")
+        text = raw.replace("\r\n", "\n").replace("\r", "\n")
     guard = None
     if text.lstrip().startswith("posting_guard:") and "\n--- text ---\n" in text:
         # posting_guard.py's combined output: scan only the cleaned text, so
