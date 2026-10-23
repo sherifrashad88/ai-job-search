@@ -59,6 +59,17 @@ per-file diff commands.
 
 ### Fixed
 
+- **`doctor.py` no longer reports Claude Code as MISSING when the desktop app is running it**
+  (`tools/doctor.py`, `tests/test_doctor.py`) - the check was `shutil.which("claude")`, which only sees the CLI
+  installer's binary. Claude Desktop ships its own copy outside PATH, so a friend who opens the folder in the
+  desktop app - a supported route in the playbook - got a `MISSING` line that no fix command could clear, and
+  `doctor.py` exited 1 forever, while SOP-0 step 3 tells them to run it until no `MISSING` lines are left. A new
+  `find_claude()` falls back to `CLAUDE_CODE_EXECPATH` when that file exists, then to the `CLAUDECODE` /
+  `CLAUDE_CODE_ENTRYPOINT` signals, then to `~/.local/bin/claude` and `~/.claude/local/claude`, and reports how it
+  was found. Claude Code stays a hard requirement, so a machine with none of these is still not ready. Six new
+  tests, including that a stale `CLAUDE_CODE_EXECPATH` does not pass; the bare-machine test now also drops those
+  environment variables, which is why it only ever passed outside Claude Code.
+
 - **The installers no longer report a renamed privacy remote as "no git remote"** (`scripts/install-windows.ps1`,
   `scripts/install-mac.sh`) - step 5 renames the shared repo's `origin` to `upstream` and disables pushing to it,
   so on any later run `git remote get-url origin` fails. Both scripts read that empty result as "No git remote

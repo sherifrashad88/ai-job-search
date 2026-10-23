@@ -86,6 +86,29 @@ def find_bun() -> str | None:
     return str(home) if home.is_file() else None
 
 
+def find_claude() -> tuple[bool, str]:
+    """Is Claude Code usable here, and what to show for it.
+
+    `shutil.which` only sees the CLI installer's binary. The desktop app ships
+    its own copy outside PATH, so a friend who runs the job search from Claude
+    Desktop (playbook section 6) would otherwise get a MISSING line that no fix
+    command can ever clear.
+    """
+    path = shutil.which("claude")
+    if path:
+        return True, run([path, "--version"]) or "found"
+    desktop = os.environ.get("CLAUDE_CODE_EXECPATH", "")
+    if desktop and Path(desktop).is_file():
+        return True, (run([desktop, "--version"]) or "found") + " (desktop app - not on PATH, which is fine)"
+    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
+        return True, "this check is running inside Claude Code"
+    binary = "claude.exe" if SYSTEM == "Windows" else "claude"
+    for candidate in (Path.home() / ".local" / "bin" / binary, Path.home() / ".claude" / "local" / binary):
+        if candidate.is_file():
+            return True, f"{candidate} (installed but not on PATH yet - open a new terminal)"
+    return False, "not found"
+
+
 def item(name, ok, required, detail, fix=None):
     return {"name": name, "ok": bool(ok), "required": required, "detail": detail, "fix": fix}
 
@@ -100,10 +123,9 @@ def check_tools() -> list[dict]:
     ))
     git = shutil.which("git")
     items.append(item("Git", git, True, run([git, "--version"]) if git else "not found", hint("git")))
-    claude = shutil.which("claude")
+    claude_ok, claude_detail = find_claude()
     items.append(item(
-        "Claude Code", claude, True,
-        (run([claude, "--version"]) or "found") if claude else "not found",
+        "Claude Code", claude_ok, True, claude_detail,
         hint("claude") + "  - then run `claude` once and log in with your own Claude Pro/Max account",
     ))
     bun = find_bun()

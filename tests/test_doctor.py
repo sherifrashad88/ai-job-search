@@ -18,6 +18,9 @@ sys.path.insert(0, str(REPO / "tools"))
 
 import doctor  # noqa: E402
 
+# What tells doctor.py that Claude Code is here without being on PATH.
+CLAUDE_SIGNALS = ("CLAUDE_CODE_EXECPATH", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
+
 
 def run(*args, env=None):
     return subprocess.run(
@@ -42,6 +45,8 @@ class DoctorTests(unittest.TestCase):
     def test_missing_tools_are_reported_not_a_crash(self):
         env = dict(os.environ, PATH=os.path.dirname(sys.executable), HOME=str(REPO / "nonexistent-home"))
         env.pop("JSEARCH_API_TOKEN", None)
+        for signal in CLAUDE_SIGNALS:
+            env.pop(signal, None)
         proc = run("--json", env=env)
         report = json.loads(proc.stdout)
         by_name = {i["name"]: i for i in report["tools"]}
@@ -69,6 +74,60 @@ class DoctorTests(unittest.TestCase):
         if "[YOUR_NAME]" in (REPO / "CLAUDE.md").read_text(encoding="utf-8"):
             self.assertFalse(profile["ok"])
             self.assertIn("placeholder", profile["detail"])
+
+
+class ClaudeCodeDetectionTests(unittest.TestCase):
+    """The desktop app ships claude outside PATH (playbook section 6).
+
+    Before this, `shutil.which("claude")` was the only check, so a friend who
+    only ever opens the folder in Claude Desktop saw a MISSING line that no fix
+    command could clear - and SOP-0 step 3 tells them to run doctor.py until no
+    MISSING lines are left.
+    """
+
+    def stripped_env(self, **extra):
+        env = dict(os.environ, PATH=os.path.dirname(sys.executable))
+        for signal in CLAUDE_SIGNALS:
+            env.pop(signal, None)
+        env.update(extra)
+        return env
+
+    def claude_item(self, env):
+        proc = run("--json", env=env)
+        report = json.loads(proc.stdout)
+        return next(i for i in report["tools"] if i["name"] == "Claude Code")
+
+    def test_not_found_without_path_or_any_signal(self):
+        if (Path(os.path.dirname(sys.executable)) / "claude").exists():
+            self.skipTest("claude sits next to this interpreter")
+        found = self.claude_item(self.stripped_env())
+        self.assertFalse(found["ok"])
+        self.assertEqual(found["detail"], "not found")
+
+    def test_desktop_app_exec_path_counts(self):
+        exe = Path(sys.executable)  # any real file: doctor only needs it to exist
+        found = self.claude_item(self.stripped_env(CLAUDE_CODE_EXECPATH=str(exe)))
+        self.assertTrue(found["ok"], "the desktop app's own binary must count")
+        self.assertIn("desktop app", found["detail"])
+
+    def test_exec_path_that_does_not_exist_is_ignored(self):
+        env = self.stripped_env(CLAUDE_CODE_EXECPATH=str(REPO / "nonexistent" / "claude.exe"))
+        if (Path(os.path.dirname(sys.executable)) / "claude").exists():
+            self.skipTest("claude sits next to this interpreter")
+        self.assertFalse(self.claude_item(env)["ok"], "a stale path must not pass the check")
+
+    def test_running_inside_claude_code_counts(self):
+        found = self.claude_item(self.stripped_env(CLAUDECODE="1"))
+        self.assertTrue(found["ok"])
+        self.assertIn("inside Claude Code", found["detail"])
+
+    def test_entrypoint_alone_counts(self):
+        found = self.claude_item(self.stripped_env(CLAUDE_CODE_ENTRYPOINT="claude-desktop"))
+        self.assertTrue(found["ok"])
+
+    def test_still_required_so_a_bare_machine_is_not_ready(self):
+        item = next(i for i in json.loads(run("--json").stdout)["tools"] if i["name"] == "Claude Code")
+        self.assertTrue(item["required"], "Claude Code stays a hard requirement")
 
 
 if __name__ == "__main__":
