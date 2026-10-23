@@ -54,6 +54,9 @@ header.band .wrap { padding-block: 18px 0; display: flex; flex-direction: column
 h1 { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: clamp(26px, 4.4vw, 36px); letter-spacing: -0.01em; margin: 0; line-height: 1.05; text-wrap: balance; }
 h1 .case { font-family: var(--f-mono); font-weight: 400; font-size: 12px; letter-spacing: 0.08em; color: var(--ink-soft); display: block; margin-bottom: 6px; text-transform: uppercase; }
 .pill { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; color: var(--ink-soft); white-space: nowrap; }
+.whobar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.who { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; color: var(--ink-soft); }
+.who select { width: auto; min-width: 150px; font-family: var(--f-body); font-size: 14px; padding: 5px 8px; color: var(--ink); }
 .pill.cloud { border-color: var(--accent); color: var(--accent); }
 nav.tabs { display: flex; gap: 2px; overflow-x: auto; }
 nav.tabs button { font-family: var(--f-display); font-stretch: 90%; font-weight: 600; font-size: 15px; background: none; border: 0; border-bottom: 3px solid transparent; color: var(--ink-soft); padding: 10px 14px; cursor: pointer; white-space: nowrap; }
@@ -150,8 +153,16 @@ ol.steps b { display: block; }
   <div class="wrap">
     <div class="brand">
       <h1><span class="case">US job search · visa sponsorship</span>Visa Job Desk</h1>
-      <span class="pill" id="storePill">Saving in this browser</span>
+      <div class="whobar">
+        <label class="who" for="who">Applying as <select id="who" aria-label="Whose profile"></select></label>
+        <button class="link" id="addWho" type="button">+ Add person</button>
+        <span class="pill" id="storePill">Saving in this browser</span>
+      </div>
     </div>
+    <form class="row" id="addRow" hidden>
+      <label class="f" style="flex:1 1 220px">Name of the person to add<input id="newWho" maxlength="60" placeholder="e.g. Sara"></label>
+      <button class="btn" type="submit">Add</button><button class="btn ghost" type="button" id="cancelWho">Cancel</button>
+    </form>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button role="tab" id="tab-start" aria-controls="start" aria-selected="true"><span class="n">01</span>Start</button>
       <button role="tab" id="tab-profile" aria-controls="profile" aria-selected="false"><span class="n">02</span>My profile</button>
@@ -175,7 +186,7 @@ ol.steps b { display: block; }
         <div class="sheet">
           <h3>Five steps</h3>
           <ol class="steps">
-            <li><div><b>Upload your CV</b>A PDF or Word file. Claude fills in your profile; you answer the visa questions. About 5 minutes, once.</div></li>
+            <li><div><b>Upload your CV</b>A PDF or Word file. Claude fills in your profile; you answer the visa questions. About 5 minutes, once. Job hunting as a couple? Use "+ Add person" at the top: each person gets their own profile and tracker.</div></li>
             <li><div><b>Find a job</b>On LinkedIn, Indeed or a company careers page. Copy the full posting text.</div></li>
             <li><div><b>Check it</b>Paste it under "Check a job". The visa stamp appears instantly: PASS, FLAG, UNVERIFIED or FAIL.</div></li>
             <li><div><b>Score and draft</b>Press "Score my fit", then draft the cover letter, resume bullets and recruiter note. Edit anything that isn't you.</div></li>
@@ -205,8 +216,8 @@ ol.steps b { display: block; }
     <!-- PROFILE -->
     <section role="tabpanel" id="profile" aria-labelledby="tab-profile" hidden>
       <div>
-        <p class="eyebrow">Step 1 · once</p>
-        <h2>My profile</h2>
+        <p class="eyebrow">Step 1 · once per person</p>
+        <h2>Profile: <span id="whoName"></span></h2>
       </div>
       <div class="example" id="profileExample" hidden>This is an <b>example profile</b> (Alex Morgan, fictional). Replace it with your own details and press <b>Save profile</b>.</div>
       <div class="sheet drop" id="cvDrop">
@@ -292,6 +303,8 @@ ol.steps b { display: block; }
         <div class="sheet">
           <label class="f">Your resume text<span class="hint">Filled in when you upload your CV, or paste it here. Everything the desk drafts comes from this text only.</span><textarea id="p-cv" class="tall"></textarea></label>
           <div class="row"><button class="btn" type="submit" id="saveProfile">Save profile</button><span class="muted" id="profileSaved"></span></div>
+          <div class="row"><button class="link" type="button" id="removePerson" hidden>Remove this person</button>
+            <span class="confirm" id="removeConfirm" hidden>Remove this person's profile and tracker?<button class="btn danger" type="button" id="confirmRemove">Remove</button><button class="link" type="button" id="keepPerson">Keep</button></span></div>
         </div>
       </form>
     </section>
@@ -448,13 +461,34 @@ ol.steps b { display: block; }
   function clip(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n) + "\n[...cut for length]" : s; }
   function useCap(name) { return window.claude && window.claude.use ? window.claude.use(name).catch(function () { return null; }) : Promise.resolve(null); }
 
-  /* ---------- storage: private cloud rows when available, else this browser ---------- */
+  /* ---------- storage: one profile + tracker per person; private account rows when available, else this browser ---------- */
   var Store = {
     mode: "local", db: null, id: null, unsub: null,
+    people: [], current: "profile",
     pill: function () {
       var p = $("#storePill");
       if (this.mode === "cloud") { p.textContent = "Saved privately to your account"; p.className = "pill cloud"; }
       else { p.textContent = "Saving in this browser"; p.className = "pill"; }
+    },
+    lsKey: function (kind, pid) { pid = pid || this.current; return pid === "profile" ? "vjd." + kind : "vjd." + kind + "." + pid; },
+    localPeople: function () {
+      var list = lsGet("vjd.people");
+      if (!Array.isArray(list) || !list.length) list = [{ id: "profile", label: (lsGet("vjd.profile") || {}).name || "Me" }];
+      return list;
+    },
+    savePeopleLocal: function () { lsSet("vjd.people", this.people); lsSet("vjd.current", this.current); },
+    bootLocal: function () {
+      this.people = this.localPeople();
+      var cur = lsGet("vjd.current");
+      this.current = this.people.some(function (x) { return x.id === cur; }) ? cur : this.people[0].id;
+      this.loadLocal();
+      renderWho();
+    },
+    loadLocal: function () {
+      var saved = lsGet(this.lsKey("profile"));
+      state.profile = saved || (this.current === "profile" ? EXAMPLE_PROFILE : blankProfile());
+      state.profileIsExample = !saved && this.current === "profile";
+      state.jobs = lsGet(this.lsKey("jobs")) || [];
     },
     init: function () {
       var self = this;
@@ -464,18 +498,39 @@ ol.steps b { display: block; }
         return user.id().then(function (id) {
           if (!id) return;
           self.db = db; self.id = id; self.mode = "cloud"; self.pill();
-          return self.profileRef().get().then(function (snap) {
-            if (snap.exists && snap.data() && snap.data().profile) {
-              state.profile = snap.data().profile; state.profileIsExample = false; fillProfile(); refreshAll();
-            } else if (!state.profileIsExample) {
-              self.saveProfile(state.profile); // move this browser's profile to the account
-            }
-            self.watchJobs();
+          return db.collection("data/users/" + id).get().then(function (snap) {
+            var cloud = snap.docs.filter(function (d) { return /^profile/.test(d.id); }).map(function (d) {
+              var data = d.data() || {};
+              return { id: d.id, label: (data.profile && data.profile.name) || data.label || "Person" };
+            });
+            self.people.forEach(function (lp) {
+              if (!cloud.some(function (c) { return c.id === lp.id; })) {
+                var local = lsGet(self.lsKey("profile", lp.id));
+                if (local) { cloud.push(lp); self.profileRef(lp.id).set({ profile: local, label: lp.label, updated: today() }).catch(function () {}); }
+              }
+            });
+            if (cloud.length) self.people = cloud;
+            if (!self.people.some(function (x) { return x.id === self.current; })) self.current = self.people[0].id;
+            self.savePeopleLocal(); renderWho();
+            return self.loadCurrent();
           });
         });
       }).catch(function () { self.toLocal(); });
     },
-    profileRef: function () { return this.db.doc("data/users/" + this.id + "/profile"); },
+    loadCurrent: function () {
+      var self = this;
+      if (this.unsub) { this.unsub(); this.unsub = null; }
+      state.fit = null; state.draft = { kind: null, text: "" };
+      if (this.mode !== "cloud") { this.loadLocal(); afterSwitch(); return Promise.resolve(); }
+      return this.profileRef().get().then(function (snap) {
+        var data = snap.exists ? snap.data() : null;
+        if (data && data.profile) { state.profile = data.profile; state.profileIsExample = false; lsSet(self.lsKey("profile"), data.profile); }
+        else { self.loadLocal(); }
+        afterSwitch();
+        self.watchJobs();
+      }, function () { self.toLocal(); self.loadLocal(); afterSwitch(); });
+    },
+    profileRef: function (pid) { return this.db.doc("data/users/" + this.id + "/" + (pid || this.current)); },
     jobsCol: function () { return this.profileRef().collection("jobs"); },
     toLocal: function (why) {
       if (this.unsub) { this.unsub(); this.unsub = null; }
@@ -483,27 +538,59 @@ ol.steps b { display: block; }
       if (why) toast(why);
     },
     watchJobs: function () {
-      var self = this;
-      var localJobs = lsGet("vjd.jobs") || [];
+      var self = this, pid = this.current;
+      var localJobs = lsGet(this.lsKey("jobs")) || [];
       this.unsub = this.jobsCol().onSnapshot(function (snap) {
+        if (pid !== self.current) return;
         state.jobs = snap.docs.map(function (d) { return d.data(); }).filter(Boolean);
         if (!state.jobs.length && localJobs.length) { localJobs.forEach(function (j) { self.saveJob(j); }); localJobs = []; }
         renderTracker();
-      }, function () { self.toLocal(); state.jobs = lsGet("vjd.jobs") || []; renderTracker(); });
+      }, function () { self.toLocal(); state.jobs = lsGet(self.lsKey("jobs")) || []; renderTracker(); });
+    },
+    switchTo: function (pid) {
+      if (pid === this.current) return;
+      this.current = pid; this.savePeopleLocal(); renderWho();
+      this.loadCurrent();
+    },
+    addPerson: function (label) {
+      var pid = "profile-" + Math.random().toString(36).slice(2, 8);
+      this.people.push({ id: pid, label: label });
+      this.current = pid; this.savePeopleLocal(); renderWho();
+      if (this.mode === "cloud") this.profileRef(pid).set({ label: label, updated: today() }).catch(function () {});
+      this.loadCurrent();
+      showTab("profile");
+    },
+    removeCurrent: function () {
+      var self = this, pid = this.current;
+      if (this.people.length < 2) return Promise.resolve();
+      var jobs = state.jobs.slice();
+      try { localStorage.removeItem(this.lsKey("profile")); localStorage.removeItem(this.lsKey("jobs")); } catch (e) {}
+      this.people = this.people.filter(function (x) { return x.id !== pid; });
+      this.current = this.people[0].id; this.savePeopleLocal(); renderWho();
+      var done = Promise.resolve();
+      if (this.mode === "cloud") {
+        if (this.unsub) { this.unsub(); this.unsub = null; }
+        var col = this.db.doc("data/users/" + this.id + "/" + pid).collection("jobs");
+        done = Promise.all(jobs.map(function (j) { return col.doc(j.id).delete().catch(function () {}); }))
+          .then(function () { return self.db.doc("data/users/" + self.id + "/" + pid).delete(); }).catch(function () {});
+      }
+      return done.then(function () { return self.loadCurrent(); });
     },
     saveProfile: function (p) {
-      lsSet("vjd.profile", p);
+      lsSet(this.lsKey("profile"), p);
+      var self = this, me = this.people.filter(function (x) { return x.id === self.current; })[0];
+      if (me && p.name) { me.label = p.name; this.savePeopleLocal(); renderWho(); }
       if (this.mode !== "cloud") return Promise.resolve("local");
-      var self = this;
-      return this.profileRef().set({ profile: p, updated: today() }).then(function () { return "cloud"; }, function (e) {
+      return this.profileRef().set({ profile: p, label: p.name || (me && me.label) || "Person", updated: today() }).then(function () { return "cloud"; }, function (e) {
         if (e && e.code === "invalid_argument") self.toLocal("Your access level can't save to the account, so this browser keeps your data.");
         return "local";
       });
     },
     saveJob: function (job) {
       if (this.mode !== "cloud") {
-        var list = (lsGet("vjd.jobs") || []).filter(function (j) { return j.id !== job.id; }); list.unshift(job);
-        lsSet("vjd.jobs", list); state.jobs = list; renderTracker(); return Promise.resolve();
+        var key = this.lsKey("jobs");
+        var list = (lsGet(key) || []).filter(function (j) { return j.id !== job.id; }); list.unshift(job);
+        lsSet(key, list); state.jobs = list; renderTracker(); return Promise.resolve();
       }
       var self = this;
       return this.jobsCol().doc(job.id).set(job).catch(function (e) {
@@ -513,12 +600,49 @@ ol.steps b { display: block; }
     },
     deleteJob: function (id) {
       if (this.mode !== "cloud") {
-        var list = (lsGet("vjd.jobs") || []).filter(function (j) { return j.id !== id; });
-        lsSet("vjd.jobs", list); state.jobs = list; renderTracker(); return Promise.resolve();
+        var key = this.lsKey("jobs");
+        var list = (lsGet(key) || []).filter(function (j) { return j.id !== id; });
+        lsSet(key, list); state.jobs = list; renderTracker(); return Promise.resolve();
       }
       return this.jobsCol().doc(id).delete().catch(function () { toast("Couldn't delete. Try again."); });
     }
   };
+  function blankProfile() {
+    return { mode: "any", cit: "other", visa: "h1b", auth: "no", needs: "now", strict: "prefer", min: "3", nospons: "drop", clear: "none", honest: "Yes" };
+  }
+  function afterSwitch() {
+    fillProfile(); renderFit(); refreshAll(); renderTracker();
+    $("#cvDone").hidden = true; $("#cvStatus").textContent = "or drag the file onto this box"; $("#profileSaved").textContent = "";
+    $("#draftOut").textContent = "Pick a draft above. It streams in here, using only facts from your resume.";
+    $("#draftMeta").textContent = "";
+    $("#removePerson").hidden = Store.people.length < 2;
+    $("#removeConfirm").hidden = true;
+  }
+  function renderWho() {
+    var sel = $("#who"); sel.replaceChildren();
+    Store.people.forEach(function (x) {
+      var o = el("option", { value: x.id, text: x.label || "Person" }); if (x.id === Store.current) o.selected = true; sel.append(o);
+    });
+    var me = Store.people.filter(function (x) { return x.id === Store.current; })[0];
+    $("#whoName").textContent = me ? me.label : "";
+  }
+  $("#who").addEventListener("change", function () { Store.switchTo(this.value); });
+  $("#addWho").addEventListener("click", function () { $("#addRow").hidden = false; $("#newWho").focus(); });
+  $("#cancelWho").addEventListener("click", function () { $("#addRow").hidden = true; $("#newWho").value = ""; });
+  $("#addRow").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("#newWho").value.trim();
+    if (!name) { $("#newWho").focus(); return; }
+    $("#addRow").hidden = true; $("#newWho").value = "";
+    Store.addPerson(name.slice(0, 60));
+    toast("Added " + name + ". Upload their CV to start.");
+  });
+  $("#removePerson").addEventListener("click", function () { $("#removeConfirm").hidden = false; });
+  $("#keepPerson").addEventListener("click", function () { $("#removeConfirm").hidden = true; });
+  $("#confirmRemove").addEventListener("click", function () {
+    var name = $("#whoName").textContent;
+    Store.removeCurrent().then(function () { toast("Removed " + name); });
+  });
 
   /* ---------- tabs ---------- */
   var TABS = ["start", "profile", "check", "tracker"];
@@ -1055,12 +1179,10 @@ ol.steps b { display: block; }
 
   /* ---------- boot ---------- */
   function refreshAll() { runCheck(); renderFit(); renderAnswers(); buildBookmarklet(); }
-  var savedProfile = lsGet("vjd.profile");
-  state.profile = savedProfile || EXAMPLE_PROFILE;
-  state.profileIsExample = !savedProfile;
+  Store.bootLocal();
   state.job = EXAMPLE_JOB; state.jobIsExample = true;
-  state.jobs = lsGet("vjd.jobs") || [];
   fillProfile(); fillJob(); refreshAll(); renderTracker(); Store.pill();
+  $("#removePerson").hidden = Store.people.length < 2;
   $("#j-text").addEventListener("input", renderAnswers);
   var h = (location.hash || "").replace("#", "");
   showTab(TABS.indexOf(h) >= 0 ? h : "start");
